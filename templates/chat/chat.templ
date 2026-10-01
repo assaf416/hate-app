@@ -1,0 +1,66 @@
+package chat
+
+import "insurance/templates/layout"
+
+type Message struct {
+	FromClient bool
+	Text       string
+	Time       string
+}
+
+var conversation = []Message{
+	{FromClient: true, Text: "שלום, רציתי לשאול לגבי חידוש הפוליסה שלי לרכב", Time: "09:12"},
+	{FromClient: false, Text: "בוקר טוב דני, בשמחה! אני רואה שהפוליסה שלך בתוקף עד סוף החודש", Time: "09:14"},
+	{FromClient: false, Text: "רוצה שאשלח לך הצעת חידוש עם אותם תנאים?", Time: "09:14"},
+	{FromClient: true, Text: "כן בבקשה, ואם אפשר גם לבדוק אם מגיעה לי הנחה על נהיגה ללא תאונות", Time: "09:16"},
+	{FromClient: false, Text: "בדקתי מול המערכת - מגיעה לך הנחה של 10% בזכות ותק נהיגה נקי", Time: "09:20"},
+	{FromClient: false, Text: "שלחתי לך את ההצעה המעודכנת למייל, תוכל לאשר כאן בצ'אט כשתסיים לבדוק", Time: "09:21"},
+	{FromClient: true, Text: "מעולה, קיבלתי. ההצעה נראית טוב, אפשר לאשר", Time: "09:35"},
+	{FromClient: false, Text: "מצוין! החידוש בוצע בהצלחה, הפוליסה החדשה תקפה החל מה-1 לחודש הבא", Time: "09:37"},
+	{FromClient: true, Text: "תודה רבה על השירות המהיר!", Time: "09:38"},
+	{FromClient: false, Text: "בשמחה דני, שיהיה לך יום נעים ונסיעה בטוחה 🚗", Time: "09:39"},
+}
+
+templ Page() {
+	@layout.PageHeader("צ'אט", "שיחה בין לקוח לנציג שירות")
+	<div class="chat-wrapper">
+		<div class="chat-header">
+			<div class="chat-avatar chat-avatar-client">דכ</div>
+			<div>
+				<div class="chat-header-name">דני כהן</div>
+				<div class="chat-header-sub">לקוח · פוליסת רכב POL-1001</div>
+			</div>
+		</div>
+		<div class="chat-messages">
+			for _, m := range conversation {
+				@bubble(m)
+			}
+		</div>
+		<div class="chat-input-bar">
+			<input type="text" class="form-control" placeholder="הקלד/י הודעה..." disabled/>
+			<button class="btn btn-primary" disabled>
+				<i class="bi bi-send-fill"></i>
+			</button>
+		</div>
+	</div>
+}
+
+templ bubble(m Message) {
+	if m.FromClient {
+		<div class="chat-row chat-row-client">
+			<div class="chat-avatar chat-avatar-client">דכ</div>
+			<div class="chat-bubble chat-bubble-client">
+				<div class="chat-bubble-text">{ m.Text }</div>
+				<div class="chat-bubble-time">{ m.Time }</div>
+			</div>
+		</div>
+	} else {
+		<div class="chat-row chat-row-rep">
+			<div class="chat-bubble chat-bubble-rep">
+				<div class="chat-bubble-text">{ m.Text }</div>
+				<div class="chat-bubble-time">{ m.Time }</div>
+			</div>
+			<div class="chat-avatar chat-avatar-rep">נש</div>
+		</div>
+	}
+}

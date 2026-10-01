@@ -1,0 +1,33 @@
+package dashboard
+
+import (
+	"strconv"
+
+	"insurance/templates/layout"
+)
+
+templ Dashboard(clientCount, policyCount, claimCount, paymentCount int) {
+	@layout.PageHeader("לוח בקרה", "סקירה כללית של המערכת")
+	<div class="row g-3">
+		@statCard("bi-people-fill", "#1164a3", "לקוחות", clientCount, "/clients")
+		@statCard("bi-file-earmark-text-fill", "#2e7d32", "פוליסות", policyCount, "/policies")
+		@statCard("bi-exclamation-diamond-fill", "#c62828", "תביעות", claimCount, "/claims")
+		@statCard("bi-cash-coin", "#f9a825", "תשלומים", paymentCount, "/payments")
+	</div>
+}
+
+templ statCard(icon, color string, label string, count int, href string) {
+	<div class="col-md-3">
+		<a href={ templ.URL(href) } hx-get={ href } hx-target="#main-content" hx-push-url="true" class="text-decoration-none">
+			<div class="card-panel d-flex align-items-center gap-3">
+				<div style={ "width:48px;height:48px;border-radius:10px;background:" + color + ";color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;" }>
+					<i class={ "bi", icon }></i>
+				</div>
+				<div>
+					<div style="font-size:13px;color:var(--muted-text);">{ label }</div>
+					<div style="font-size:24px;font-weight:700;color:var(--text-color);">{ strconv.Itoa(count) }</div>
+				</div>
+			</div>
+		</a>
+	</div>
+}

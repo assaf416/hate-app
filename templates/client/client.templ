@@ -1,0 +1,223 @@
+package client
+
+import (
+	"strconv"
+
+	"insurance/models"
+	"insurance/templates/layout"
+)
+
+templ List(clients []models.Client, autoOpenNew bool) {
+	@layout.PageHeader("לקוחות", "ניהול לקוחות הביטוח")
+	<div class="mb-3">
+		<button class="btn btn-primary" hx-get="/clients/new" hx-target="#modal-area">
+			<i class="bi bi-plus-lg"></i> לקוח חדש
+		</button>
+	</div>
+	<div class="card-panel p-0">
+		<table class="table table-hover mb-0">
+			<thead>
+				<tr>
+					<th>שם מלא</th>
+					<th>תעודת זהות</th>
+					<th>אימייל</th>
+					<th>טלפון</th>
+					<th>כתובת</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody id="clients-tbody">
+				for _, c := range clients {
+					@Row(c)
+				}
+			</tbody>
+		</table>
+	</div>
+	<div id="modal-area">
+		if autoOpenNew {
+			@Form(nil)
+		}
+	</div>
+}
+
+templ Row(c models.Client) {
+	<tr id={ "client-row-" + strconv.FormatInt(c.ID, 10) }>
+		<td>
+			<a href={ templ.URL("/clients/" + strconv.FormatInt(c.ID, 10)) } hx-get={ "/clients/" + strconv.FormatInt(c.ID, 10) } hx-target="#main-content" hx-push-url="true">
+				{ c.FullName }
+			</a>
+		</td>
+		<td>{ c.NationalID }</td>
+		<td>{ c.Email }</td>
+		<td>{ c.Phone }</td>
+		<td>{ c.Address }</td>
+		<td class="text-start">
+			<button class="btn btn-sm btn-outline-secondary" hx-get={ "/clients/" + strconv.FormatInt(c.ID, 10) + "/edit" } hx-target="#modal-area">
+				<i class="bi bi-pencil"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-danger" hx-delete={ "/clients/" + strconv.FormatInt(c.ID, 10) } hx-target={ "#client-row-" + strconv.FormatInt(c.ID, 10) } hx-swap="outerHTML" hx-confirm="למחוק את הלקוח? פעולה זו תמחק גם את כל הפוליסות, התביעות והתשלומים המשויכים.">
+				<i class="bi bi-trash"></i>
+			</button>
+		</td>
+	</tr>
+}
+
+templ Form(c *models.Client) {
+	<div class="modal d-block" style="background:rgba(0,0,0,0.5);" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					if c == nil {
+						<h5 class="modal-title">לקוח חדש</h5>
+					} else {
+						<h5 class="modal-title">עריכת לקוח</h5>
+					}
+					<button type="button" class="btn-close" hx-get="/clients/close" hx-target="#modal-area"></button>
+				</div>
+				if c == nil {
+					<form hx-post="/clients" hx-swap="none">
+						@formFields(c)
+					</form>
+				} else {
+					<form hx-put={ "/clients/" + strconv.FormatInt(c.ID, 10) } hx-swap="none">
+						@formFields(c)
+					</form>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+templ formFields(c *models.Client) {
+					<div class="modal-body">
+						<div class="mb-3">
+							<label class="form-label">שם מלא</label>
+							<input type="text" name="full_name" class="form-control" required value={ valOf(c, func(c *models.Client) string { return c.FullName }) }/>
+						</div>
+						<div class="mb-3">
+							<label class="form-label">תעודת זהות</label>
+							<input type="text" name="national_id" class="form-control" required value={ valOf(c, func(c *models.Client) string { return c.NationalID }) }/>
+						</div>
+						<div class="mb-3">
+							<label class="form-label">אימייל</label>
+							<input type="email" name="email" class="form-control" value={ valOf(c, func(c *models.Client) string { return c.Email }) }/>
+						</div>
+						<div class="mb-3">
+							<label class="form-label">טלפון</label>
+							<input type="text" name="phone" class="form-control" value={ valOf(c, func(c *models.Client) string { return c.Phone }) }/>
+						</div>
+						<div class="mb-3">
+							<label class="form-label">כתובת</label>
+							<input type="text" name="address" class="form-control" value={ valOf(c, func(c *models.Client) string { return c.Address }) }/>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" hx-get="/clients/close" hx-target="#modal-area">ביטול</button>
+						<button type="submit" class="btn btn-primary">שמירה</button>
+					</div>
+}
+
+templ Empty() {
+}
+
+func valOf(c *models.Client, f func(*models.Client) string) string {
+	if c == nil {
+		return ""
+	}
+	return f(c)
+}
+
+templ Detail(c models.Client, policies []models.Policy, claims []models.Claim, payments []models.Payment, attachments []models.Attachment) {
+	@layout.PageHeader(c.FullName, "פרטי לקוח ותיק ביטוח")
+	<div class="row g-3">
+		<div class="col-md-4">
+			<div class="card-panel mb-3">
+				<h6 class="mb-3">פרטי קשר</h6>
+				<p class="mb-1"><strong>תעודת זהות:</strong> { c.NationalID }</p>
+				<p class="mb-1"><strong>אימייל:</strong> { c.Email }</p>
+				<p class="mb-1"><strong>טלפון:</strong> { c.Phone }</p>
+				<p class="mb-0"><strong>כתובת:</strong> { c.Address }</p>
+			</div>
+			<div class="card-panel">
+				<h6 class="mb-3">קבצים מצורפים</h6>
+				@AttachmentList("client", c.ID, attachments)
+			</div>
+		</div>
+		<div class="col-md-8">
+			<div class="card-panel mb-3">
+				<div class="d-flex justify-content-between align-items-center mb-2">
+					<h6 class="mb-0">פוליסות</h6>
+					<a class="btn btn-sm btn-primary" href={ templ.URL("/policies/new?client_id=" + strconv.FormatInt(c.ID, 10)) } hx-get={ "/policies/new?client_id=" + strconv.FormatInt(c.ID, 10) } hx-target="#modal-area">פוליסה חדשה</a>
+				</div>
+				<table class="table table-sm">
+					<thead><tr><th>מספר פוליסה</th><th>סוג</th><th>סטטוס</th><th>פרמיה</th></tr></thead>
+					<tbody>
+						for _, p := range policies {
+							<tr>
+								<td><a href={ templ.URL("/policies/" + strconv.FormatInt(p.ID, 10)) } hx-get={ "/policies/" + strconv.FormatInt(p.ID, 10) } hx-target="#main-content" hx-push-url="true">{ p.PolicyNumber }</a></td>
+								<td>{ p.PolicyType }</td>
+								<td>{ p.Status }</td>
+								<td>{ strconv.FormatFloat(p.Premium, 'f', 2, 64) } ₪</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			<div class="card-panel mb-3">
+				<h6 class="mb-2">תביעות</h6>
+				<table class="table table-sm">
+					<thead><tr><th>מספר תביעה</th><th>פוליסה</th><th>סטטוס</th><th>סכום</th></tr></thead>
+					<tbody>
+						for _, cl := range claims {
+							<tr>
+								<td>{ cl.ClaimNumber }</td>
+								<td>{ cl.PolicyNumber }</td>
+								<td>{ cl.Status }</td>
+								<td>{ strconv.FormatFloat(cl.Amount, 'f', 2, 64) } ₪</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			<div class="card-panel">
+				<h6 class="mb-2">תשלומים</h6>
+				<table class="table table-sm">
+					<thead><tr><th>תאריך</th><th>פוליסה</th><th>אמצעי</th><th>סכום</th></tr></thead>
+					<tbody>
+						for _, pm := range payments {
+							<tr>
+								<td>{ pm.PaymentDate }</td>
+								<td>{ pm.PolicyNumber }</td>
+								<td>{ pm.Method }</td>
+								<td>{ strconv.FormatFloat(pm.Amount, 'f', 2, 64) } ₪</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	<div id="modal-area"></div>
+}
+
+templ AttachmentList(entityType string, entityID int64, attachments []models.Attachment) {
+	<ul class="list-unstyled mb-3 attachment-list" id={ "attachments-" + entityType + "-" + strconv.FormatInt(entityID, 10) }>
+		for _, a := range attachments {
+			<li class="d-flex justify-content-between align-items-center mb-2">
+				<a href={ templ.URL("/attachments/" + strconv.FormatInt(a.ID, 10) + "/download") } target="_blank" class="attachment-link">
+					<i class={ a.IconClass() }></i>
+					<span class="attachment-name">{ a.FileName }</span>
+					<span class="attachment-size">{ a.SizeLabel() }</span>
+				</a>
+				<button class="btn btn-sm btn-link text-danger p-0" hx-delete={ "/attachments/" + strconv.FormatInt(a.ID, 10) } hx-target="closest li" hx-swap="outerHTML">
+					<i class="bi bi-x"></i>
+				</button>
+			</li>
+		}
+	</ul>
+	<form hx-post={ "/attachments/upload?entity_type=" + entityType + "&entity_id=" + strconv.FormatInt(entityID, 10) } hx-target={ "#attachments-" + entityType + "-" + strconv.FormatInt(entityID, 10) } hx-swap="outerHTML" hx-encoding="multipart/form-data">
+		<input type="file" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" class="form-control form-control-sm mb-2" required/>
+		<button type="submit" class="btn btn-sm btn-outline-primary">העלאת קובץ</button>
+		<div class="form-text">PDF, Word, Excel או תמונה</div>
+	</form>
+}

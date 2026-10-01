@@ -1,0 +1,249 @@
+package policy
+
+import (
+	"strconv"
+
+	"insurance/models"
+	"insurance/templates/layout"
+)
+
+templ List(policies []models.Policy, clients []models.Client, autoOpenNew bool) {
+	@layout.PageHeader("פוליסות", "ניהול פוליסות ביטוח")
+	<div class="mb-3">
+		<button class="btn btn-primary" hx-get="/policies/new" hx-target="#modal-area">
+			<i class="bi bi-plus-lg"></i> פוליסה חדשה
+		</button>
+	</div>
+	<div class="card-panel p-0">
+		<table class="table table-hover mb-0">
+			<thead>
+				<tr>
+					<th>מספר פוליסה</th>
+					<th>לקוח</th>
+					<th>סוג</th>
+					<th>תחילה</th>
+					<th>סיום</th>
+					<th>פרמיה</th>
+					<th>סטטוס</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody id="policies-tbody">
+				for _, p := range policies {
+					@Row(p)
+				}
+			</tbody>
+		</table>
+	</div>
+	<div id="modal-area">
+		if autoOpenNew {
+			@Form(nil, clients, 0)
+		}
+	</div>
+}
+
+templ Row(p models.Policy) {
+	<tr id={ "policy-row-" + strconv.FormatInt(p.ID, 10) }>
+		<td>
+			<a href={ templ.URL("/policies/" + strconv.FormatInt(p.ID, 10)) } hx-get={ "/policies/" + strconv.FormatInt(p.ID, 10) } hx-target="#main-content" hx-push-url="true">
+				{ p.PolicyNumber }
+			</a>
+		</td>
+		<td>{ p.ClientName }</td>
+		<td>{ p.PolicyType }</td>
+		<td>{ p.StartDate }</td>
+		<td>{ p.EndDate }</td>
+		<td>{ strconv.FormatFloat(p.Premium, 'f', 2, 64) } ₪</td>
+		<td>{ p.Status }</td>
+		<td class="text-start">
+			<button class="btn btn-sm btn-outline-secondary" hx-get={ "/policies/" + strconv.FormatInt(p.ID, 10) + "/edit" } hx-target="#modal-area">
+				<i class="bi bi-pencil"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-danger" hx-delete={ "/policies/" + strconv.FormatInt(p.ID, 10) } hx-target={ "#policy-row-" + strconv.FormatInt(p.ID, 10) } hx-swap="outerHTML" hx-confirm="למחוק את הפוליסה? פעולה זו תמחק גם תביעות ותשלומים משויכים.">
+				<i class="bi bi-trash"></i>
+			</button>
+		</td>
+	</tr>
+}
+
+templ Form(p *models.Policy, clients []models.Client, presetClientID int64) {
+	<div class="modal d-block" style="background:rgba(0,0,0,0.5);" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					if p == nil {
+						<h5 class="modal-title">פוליסה חדשה</h5>
+					} else {
+						<h5 class="modal-title">עריכת פוליסה</h5>
+					}
+					<button type="button" class="btn-close" hx-get="/policies/close" hx-target="#modal-area"></button>
+				</div>
+				if p == nil {
+					<form hx-post="/policies" hx-swap="none">
+						@formFields(p, clients, presetClientID)
+					</form>
+				} else {
+					<form hx-put={ "/policies/" + strconv.FormatInt(p.ID, 10) } hx-swap="none">
+						@formFields(p, clients, presetClientID)
+					</form>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+templ formFields(p *models.Policy, clients []models.Client, presetClientID int64) {
+	<div class="modal-body">
+		<div class="mb-3">
+			<label class="form-label">לקוח</label>
+			<select name="client_id" class="form-select" required>
+				<option value="">בחר לקוח</option>
+				for _, c := range clients {
+					if selectedClient(p, presetClientID, c.ID) {
+						<option value={ strconv.FormatInt(c.ID, 10) } selected>{ c.FullName }</option>
+					} else {
+						<option value={ strconv.FormatInt(c.ID, 10) }>{ c.FullName }</option>
+					}
+				}
+			</select>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">מספר פוליסה</label>
+			<input type="text" name="policy_number" class="form-control" required value={ valOf(p, func(p *models.Policy) string { return p.PolicyNumber }) }/>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">סוג פוליסה</label>
+			<input type="text" name="policy_type" class="form-control" required value={ valOf(p, func(p *models.Policy) string { return p.PolicyType }) } placeholder="רכב, דירה, חיים..."/>
+		</div>
+		<div class="row">
+			<div class="col-6 mb-3">
+				<label class="form-label">תאריך תחילה</label>
+				<input type="date" name="start_date" class="form-control" required value={ valOf(p, func(p *models.Policy) string { return p.StartDate }) }/>
+			</div>
+			<div class="col-6 mb-3">
+				<label class="form-label">תאריך סיום</label>
+				<input type="date" name="end_date" class="form-control" required value={ valOf(p, func(p *models.Policy) string { return p.EndDate }) }/>
+			</div>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">פרמיה (₪)</label>
+			<input type="number" step="0.01" name="premium" class="form-control" required value={ valOfFloat(p) }/>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">סטטוס</label>
+			<select name="status" class="form-select">
+				for _, s := range []string{"פעילה", "מוקפאת", "מבוטלת", "הסתיימה"} {
+					if valOf(p, func(p *models.Policy) string { return p.Status }) == s {
+						<option value={ s } selected>{ s }</option>
+					} else {
+						<option value={ s }>{ s }</option>
+					}
+				}
+			</select>
+		</div>
+	</div>
+	<div class="modal-footer">
+		<button type="button" class="btn btn-secondary" hx-get="/policies/close" hx-target="#modal-area">ביטול</button>
+		<button type="submit" class="btn btn-primary">שמירה</button>
+	</div>
+}
+
+func selectedClient(p *models.Policy, presetClientID, candidateID int64) bool {
+	if p != nil {
+		return p.ClientID == candidateID
+	}
+	return presetClientID == candidateID
+}
+
+func valOf(p *models.Policy, f func(*models.Policy) string) string {
+	if p == nil {
+		return ""
+	}
+	return f(p)
+}
+
+func valOfFloat(p *models.Policy) string {
+	if p == nil {
+		return ""
+	}
+	return strconv.FormatFloat(p.Premium, 'f', 2, 64)
+}
+
+templ Empty() {
+}
+
+templ Detail(p models.Policy, claims []models.Claim, payments []models.Payment, attachments []models.Attachment) {
+	@layout.PageHeader(p.PolicyNumber, "פרטי פוליסה - " + p.ClientName)
+	<div class="row g-3">
+		<div class="col-md-4">
+			<div class="card-panel mb-3">
+				<h6 class="mb-3">פרטי פוליסה</h6>
+				<p class="mb-1"><strong>לקוח:</strong> { p.ClientName }</p>
+				<p class="mb-1"><strong>סוג:</strong> { p.PolicyType }</p>
+				<p class="mb-1"><strong>תחילה:</strong> { p.StartDate }</p>
+				<p class="mb-1"><strong>סיום:</strong> { p.EndDate }</p>
+				<p class="mb-1"><strong>פרמיה:</strong> { strconv.FormatFloat(p.Premium, 'f', 2, 64) } ₪</p>
+				<p class="mb-0"><strong>סטטוס:</strong> { p.Status }</p>
+			</div>
+			<div class="card-panel">
+				<h6 class="mb-3">קבצים מצורפים</h6>
+				@AttachmentList(p.ID, attachments)
+			</div>
+		</div>
+		<div class="col-md-8">
+			<div class="card-panel mb-3">
+				<h6 class="mb-2">תביעות על פוליסה זו</h6>
+				<table class="table table-sm">
+					<thead><tr><th>מספר תביעה</th><th>סטטוס</th><th>סכום</th></tr></thead>
+					<tbody>
+						for _, cl := range claims {
+							<tr>
+								<td>{ cl.ClaimNumber }</td>
+								<td>{ cl.Status }</td>
+								<td>{ strconv.FormatFloat(cl.Amount, 'f', 2, 64) } ₪</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			<div class="card-panel">
+				<h6 class="mb-2">תשלומים על פוליסה זו</h6>
+				<table class="table table-sm">
+					<thead><tr><th>תאריך</th><th>אמצעי</th><th>סכום</th></tr></thead>
+					<tbody>
+						for _, pm := range payments {
+							<tr>
+								<td>{ pm.PaymentDate }</td>
+								<td>{ pm.Method }</td>
+								<td>{ strconv.FormatFloat(pm.Amount, 'f', 2, 64) } ₪</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	<div id="modal-area"></div>
+}
+
+templ AttachmentList(policyID int64, attachments []models.Attachment) {
+	<ul class="list-unstyled mb-3 attachment-list" id={ "attachments-policy-" + strconv.FormatInt(policyID, 10) }>
+		for _, a := range attachments {
+			<li class="d-flex justify-content-between align-items-center mb-2">
+				<a href={ templ.URL("/attachments/" + strconv.FormatInt(a.ID, 10) + "/download") } target="_blank" class="attachment-link">
+					<i class={ a.IconClass() }></i>
+					<span class="attachment-name">{ a.FileName }</span>
+					<span class="attachment-size">{ a.SizeLabel() }</span>
+				</a>
+				<button class="btn btn-sm btn-link text-danger p-0" hx-delete={ "/attachments/" + strconv.FormatInt(a.ID, 10) } hx-target="closest li" hx-swap="outerHTML">
+					<i class="bi bi-x"></i>
+				</button>
+			</li>
+		}
+	</ul>
+	<form hx-post={ "/attachments/upload?entity_type=policy&entity_id=" + strconv.FormatInt(policyID, 10) } hx-target={ "#attachments-policy-" + strconv.FormatInt(policyID, 10) } hx-swap="outerHTML" hx-encoding="multipart/form-data">
+		<input type="file" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" class="form-control form-control-sm mb-2" required/>
+		<button type="submit" class="btn btn-sm btn-outline-primary">העלאת קובץ</button>
+		<div class="form-text">PDF, Word, Excel או תמונה</div>
+	</form>
+}

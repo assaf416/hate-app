@@ -1,0 +1,158 @@
+package payment
+
+import (
+	"strconv"
+
+	"insurance/models"
+	"insurance/templates/layout"
+)
+
+templ List(payments []models.Payment, policies []models.Policy, autoOpenNew bool) {
+	@layout.PageHeader("תשלומים", "ניהול תשלומי פוליסות")
+	<div class="mb-3">
+		<button class="btn btn-primary" hx-get="/payments/new" hx-target="#modal-area">
+			<i class="bi bi-plus-lg"></i> תשלום חדש
+		</button>
+	</div>
+	<div class="card-panel p-0">
+		<table class="table table-hover mb-0">
+			<thead>
+				<tr>
+					<th>תאריך</th>
+					<th>לקוח</th>
+					<th>פוליסה</th>
+					<th>אמצעי תשלום</th>
+					<th>סכום</th>
+					<th>סטטוס</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody id="payments-tbody">
+				for _, pm := range payments {
+					@Row(pm)
+				}
+			</tbody>
+		</table>
+	</div>
+	<div id="modal-area">
+		if autoOpenNew {
+			@Form(nil, policies)
+		}
+	</div>
+}
+
+templ Row(pm models.Payment) {
+	<tr id={ "payment-row-" + strconv.FormatInt(pm.ID, 10) }>
+		<td>{ pm.PaymentDate }</td>
+		<td>{ pm.ClientName }</td>
+		<td>{ pm.PolicyNumber }</td>
+		<td>{ pm.Method }</td>
+		<td>{ strconv.FormatFloat(pm.Amount, 'f', 2, 64) } ₪</td>
+		<td>{ pm.Status }</td>
+		<td class="text-start">
+			<button class="btn btn-sm btn-outline-secondary" hx-get={ "/payments/" + strconv.FormatInt(pm.ID, 10) + "/edit" } hx-target="#modal-area">
+				<i class="bi bi-pencil"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-danger" hx-delete={ "/payments/" + strconv.FormatInt(pm.ID, 10) } hx-target={ "#payment-row-" + strconv.FormatInt(pm.ID, 10) } hx-swap="outerHTML" hx-confirm="למחוק את התשלום?">
+				<i class="bi bi-trash"></i>
+			</button>
+		</td>
+	</tr>
+}
+
+templ Form(pm *models.Payment, policies []models.Policy) {
+	<div class="modal d-block" style="background:rgba(0,0,0,0.5);" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					if pm == nil {
+						<h5 class="modal-title">תשלום חדש</h5>
+					} else {
+						<h5 class="modal-title">עריכת תשלום</h5>
+					}
+					<button type="button" class="btn-close" hx-get="/payments/close" hx-target="#modal-area"></button>
+				</div>
+				if pm == nil {
+					<form hx-post="/payments" hx-swap="none">
+						@formFields(pm, policies)
+					</form>
+				} else {
+					<form hx-put={ "/payments/" + strconv.FormatInt(pm.ID, 10) } hx-swap="none">
+						@formFields(pm, policies)
+					</form>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+templ formFields(pm *models.Payment, policies []models.Policy) {
+	<div class="modal-body">
+		<div class="mb-3">
+			<label class="form-label">פוליסה</label>
+			<select name="policy_id" class="form-select" required>
+				<option value="">בחר פוליסה</option>
+				for _, p := range policies {
+					if pm != nil && pm.PolicyID == p.ID {
+						<option value={ strconv.FormatInt(p.ID, 10) } selected>{ p.PolicyNumber } - { p.ClientName }</option>
+					} else {
+						<option value={ strconv.FormatInt(p.ID, 10) }>{ p.PolicyNumber } - { p.ClientName }</option>
+					}
+				}
+			</select>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">תאריך תשלום</label>
+			<input type="date" name="payment_date" class="form-control" required value={ valOf(pm, func(pm *models.Payment) string { return pm.PaymentDate }) }/>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">סכום (₪)</label>
+			<input type="number" step="0.01" name="amount" class="form-control" required value={ valOfFloat(pm) }/>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">אמצעי תשלום</label>
+			<select name="method" class="form-select">
+				for _, m := range []string{"כרטיס אשראי", "הוראת קבע", "העברה בנקאית", "מזומן"} {
+					if valOf(pm, func(pm *models.Payment) string { return pm.Method }) == m {
+						<option value={ m } selected>{ m }</option>
+					} else {
+						<option value={ m }>{ m }</option>
+					}
+				}
+			</select>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">סטטוס</label>
+			<select name="status" class="form-select">
+				for _, s := range []string{"שולם", "ממתין", "נכשל", "הוחזר"} {
+					if valOf(pm, func(pm *models.Payment) string { return pm.Status }) == s {
+						<option value={ s } selected>{ s }</option>
+					} else {
+						<option value={ s }>{ s }</option>
+					}
+				}
+			</select>
+		</div>
+	</div>
+	<div class="modal-footer">
+		<button type="button" class="btn btn-secondary" hx-get="/payments/close" hx-target="#modal-area">ביטול</button>
+		<button type="submit" class="btn btn-primary">שמירה</button>
+	</div>
+}
+
+func valOf(pm *models.Payment, f func(*models.Payment) string) string {
+	if pm == nil {
+		return ""
+	}
+	return f(pm)
+}
+
+func valOfFloat(pm *models.Payment) string {
+	if pm == nil {
+		return ""
+	}
+	return strconv.FormatFloat(pm.Amount, 'f', 2, 64)
+}
+
+templ Empty() {
+}

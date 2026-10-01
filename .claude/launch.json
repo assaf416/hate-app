@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "insurance-app",
+      "runtimeExecutable": "./insurance-app",
+      "runtimeArgs": [],
+      "port": 8080
+    }
+  ]
+}

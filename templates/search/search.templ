@@ -1,0 +1,35 @@
+package search
+
+import (
+	"strconv"
+
+	"insurance/models"
+)
+
+templ Results(query string, results []models.SearchResult) {
+	if query == "" {
+		<div></div>
+	} else if len(results) == 0 {
+		<div class="search-dropdown">
+			<div class="search-empty">אין תוצאות עבור "{ query }"</div>
+		</div>
+	} else {
+		<div class="search-dropdown">
+			for _, r := range results {
+				if r.Kind == "client" {
+					<a class="search-item" href={ templ.URL("/clients/" + strconv.FormatInt(r.ID, 10)) } hx-get={ "/clients/" + strconv.FormatInt(r.ID, 10) } hx-target="#main-content" hx-push-url="true">
+						<i class="bi bi-person-fill"></i>
+						<span class="search-item-title">{ r.Title }</span>
+						<span class="search-item-sub">{ r.Sub }</span>
+					</a>
+				} else {
+					<a class="search-item" href={ templ.URL("/policies/" + strconv.FormatInt(r.ID, 10)) } hx-get={ "/policies/" + strconv.FormatInt(r.ID, 10) } hx-target="#main-content" hx-push-url="true">
+						<i class="bi bi-file-earmark-text-fill"></i>
+						<span class="search-item-title">{ r.Title }</span>
+						<span class="search-item-sub">{ r.Sub }</span>
+					</a>
+				}
+			}
+		</div>
+	}
+}

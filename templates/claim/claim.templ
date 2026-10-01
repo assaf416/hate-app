@@ -1,0 +1,154 @@
+package claim
+
+import (
+	"strconv"
+
+	"insurance/models"
+	"insurance/templates/layout"
+)
+
+templ List(claims []models.Claim, policies []models.Policy, autoOpenNew bool) {
+	@layout.PageHeader("תביעות", "ניהול תביעות ביטוח")
+	<div class="mb-3">
+		<button class="btn btn-primary" hx-get="/claims/new" hx-target="#modal-area">
+			<i class="bi bi-plus-lg"></i> תביעה חדשה
+		</button>
+	</div>
+	<div class="card-panel p-0">
+		<table class="table table-hover mb-0">
+			<thead>
+				<tr>
+					<th>מספר תביעה</th>
+					<th>לקוח</th>
+					<th>פוליסה</th>
+					<th>תאריך הגשה</th>
+					<th>סכום</th>
+					<th>סטטוס</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody id="claims-tbody">
+				for _, cl := range claims {
+					@Row(cl)
+				}
+			</tbody>
+		</table>
+	</div>
+	<div id="modal-area">
+		if autoOpenNew {
+			@Form(nil, policies)
+		}
+	</div>
+}
+
+templ Row(cl models.Claim) {
+	<tr id={ "claim-row-" + strconv.FormatInt(cl.ID, 10) }>
+		<td>{ cl.ClaimNumber }</td>
+		<td>{ cl.ClientName }</td>
+		<td>{ cl.PolicyNumber }</td>
+		<td>{ cl.FiledDate }</td>
+		<td>{ strconv.FormatFloat(cl.Amount, 'f', 2, 64) } ₪</td>
+		<td>{ cl.Status }</td>
+		<td class="text-start">
+			<button class="btn btn-sm btn-outline-secondary" hx-get={ "/claims/" + strconv.FormatInt(cl.ID, 10) + "/edit" } hx-target="#modal-area">
+				<i class="bi bi-pencil"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-danger" hx-delete={ "/claims/" + strconv.FormatInt(cl.ID, 10) } hx-target={ "#claim-row-" + strconv.FormatInt(cl.ID, 10) } hx-swap="outerHTML" hx-confirm="למחוק את התביעה?">
+				<i class="bi bi-trash"></i>
+			</button>
+		</td>
+	</tr>
+}
+
+templ Form(cl *models.Claim, policies []models.Policy) {
+	<div class="modal d-block" style="background:rgba(0,0,0,0.5);" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					if cl == nil {
+						<h5 class="modal-title">תביעה חדשה</h5>
+					} else {
+						<h5 class="modal-title">עריכת תביעה</h5>
+					}
+					<button type="button" class="btn-close" hx-get="/claims/close" hx-target="#modal-area"></button>
+				</div>
+				if cl == nil {
+					<form hx-post="/claims" hx-swap="none">
+						@formFields(cl, policies)
+					</form>
+				} else {
+					<form hx-put={ "/claims/" + strconv.FormatInt(cl.ID, 10) } hx-swap="none">
+						@formFields(cl, policies)
+					</form>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+templ formFields(cl *models.Claim, policies []models.Policy) {
+	<div class="modal-body">
+		<div class="mb-3">
+			<label class="form-label">פוליסה</label>
+			<select name="policy_id" class="form-select" required>
+				<option value="">בחר פוליסה</option>
+				for _, p := range policies {
+					if cl != nil && cl.PolicyID == p.ID {
+						<option value={ strconv.FormatInt(p.ID, 10) } selected>{ p.PolicyNumber } - { p.ClientName }</option>
+					} else {
+						<option value={ strconv.FormatInt(p.ID, 10) }>{ p.PolicyNumber } - { p.ClientName }</option>
+					}
+				}
+			</select>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">מספר תביעה</label>
+			<input type="text" name="claim_number" class="form-control" required value={ valOf(cl, func(cl *models.Claim) string { return cl.ClaimNumber }) }/>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">תיאור</label>
+			<textarea name="description" class="form-control" rows="3">{ valOf(cl, func(cl *models.Claim) string { return cl.Description }) }</textarea>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">תאריך הגשה</label>
+			<input type="date" name="filed_date" class="form-control" required value={ valOf(cl, func(cl *models.Claim) string { return cl.FiledDate }) }/>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">סכום (₪)</label>
+			<input type="number" step="0.01" name="amount" class="form-control" required value={ valOfFloat(cl) }/>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">סטטוס</label>
+			<select name="status" class="form-select">
+				for _, s := range []string{"פתוחה", "בבדיקה", "אושרה", "נדחתה", "נסגרה"} {
+					if valOf(cl, func(cl *models.Claim) string { return cl.Status }) == s {
+						<option value={ s } selected>{ s }</option>
+					} else {
+						<option value={ s }>{ s }</option>
+					}
+				}
+			</select>
+		</div>
+	</div>
+	<div class="modal-footer">
+		<button type="button" class="btn btn-secondary" hx-get="/claims/close" hx-target="#modal-area">ביטול</button>
+		<button type="submit" class="btn btn-primary">שמירה</button>
+	</div>
+}
+
+func valOf(cl *models.Claim, f func(*models.Claim) string) string {
+	if cl == nil {
+		return ""
+	}
+	return f(cl)
+}
+
+func valOfFloat(cl *models.Claim) string {
+	if cl == nil {
+		return ""
+	}
+	return strconv.FormatFloat(cl.Amount, 'f', 2, 64)
+}
+
+templ Empty() {
+}

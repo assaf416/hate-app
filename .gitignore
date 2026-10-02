@@ -1,4 +1,5 @@
 /insurance.db
 /insurance-app
+/insurance
 /uploads/*
 !/uploads/.gitkeep

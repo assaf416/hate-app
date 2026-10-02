@@ -1,5 +1,7 @@
 # hate-app
 
+[![Tests](https://github.com/assaf416/hate-app/actions/workflows/test.yml/badge.svg)](https://github.com/assaf416/hate-app/actions/workflows/test.yml)
+
 A Hebrew (RTL) insurance management app built on the **HATE** stack —
 **H**TMX, **A**lpine.js, **T**empl, **E**cho — with Bootstrap 5 for styling
 and SQLite3 for storage.
@@ -96,6 +98,23 @@ CGO_ENABLED=1 go build ./...
 CGO_ENABLED=1 go vet ./...
 ```
 
+### Coverage report
+
+```bash
+CGO_ENABLED=1 go test . -coverpkg=./... -coverprofile=coverage.out -covermode=atomic
+go tool cover -func=coverage.out   # terminal summary
+go tool cover -html=coverage.out -o coverage.html   # browsable HTML report
+```
+
+## Continuous Integration
+
+Every push and pull request to `main` runs via
+[`.github/workflows/test.yml`](.github/workflows/test.yml): it builds the
+project, runs `go vet`, runs the full test suite (including the Hebrew
+Cucumber scenarios) with coverage instrumentation, and uploads the coverage
+report (`coverage.out`, `coverage.html`, `coverage.txt`) as a workflow
+artifact. A coverage summary is also posted to the run's Job Summary.
+
 ## Project layout
 
 ```
@@ -108,4 +127,5 @@ static/                 CSS (app + theming) and JS (sidebar sync, theme switcher
 features/               Hebrew Cucumber feature files + step definitions
 cmd/seed/               Sample-data generator
 scripts/                Dev scripts (Cucumber runner, etc.)
+.github/workflows/      CI (build, vet, test, coverage)
 ```

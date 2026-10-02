@@ -3,3 +3,6 @@
 /insurance
 /uploads/*
 !/uploads/.gitkeep
+coverage.out
+coverage.html
+coverage.txt

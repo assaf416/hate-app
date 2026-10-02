@@ -178,6 +178,15 @@ func claimIDByNumber(number string) (int64, error) {
 	return id, err
 }
 
+func phoneCallIDByTitle(title string) (int64, error) {
+	var id int64
+	err := db.DB.QueryRow(`SELECT id FROM phone_calls WHERE title = ?`, title).Scan(&id)
+	if err == sql.ErrNoRows {
+		return 0, fmt.Errorf("שיחה מוקלטת לא נמצאה: %s", title)
+	}
+	return id, err
+}
+
 func attachmentIDByName(fileName string) (int64, error) {
 	var id int64
 	err := db.DB.QueryRow(`SELECT id FROM attachments WHERE file_name = ?`, fileName).Scan(&id)
@@ -616,6 +625,50 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 		}
 		if strings.Contains(state.lastBody, fileName) {
 			return fmt.Errorf("הקובץ %q עדיין מופיע בכרטיס הלקוח", fileName)
+		}
+		return nil
+	})
+
+	// --- Phone calls ---
+
+	sc.When(`^אני יוצר שיחה מוקלטת בכותרת "([^"]+)" ללקוח "([^"]+)" בתאריך "([^"]+)" וכתובת הקלטה "([^"]+)"$`,
+		func(title, clientName, recordedAt, recordingURL string) error {
+			clientID, err := clientIDByName(clientName)
+			if err != nil {
+				return err
+			}
+			return state.postForm("/recordings", url.Values{
+				"client_id":     {strconv.FormatInt(clientID, 10)},
+				"title":         {title},
+				"recorded_at":   {recordedAt},
+				"recording_url": {recordingURL},
+			})
+		})
+
+	sc.Then(`^השיחה "([^"]+)" מופיעה ביומן ההקלטות$`, func(title string) error {
+		if err := state.get("/recordings"); err != nil {
+			return err
+		}
+		if !strings.Contains(state.lastBody, title) {
+			return fmt.Errorf("השיחה %q לא נמצאה ביומן ההקלטות", title)
+		}
+		return nil
+	})
+
+	sc.When(`^אני מוחק את השיחה המוקלטת "([^"]+)"$`, func(title string) error {
+		id, err := phoneCallIDByTitle(title)
+		if err != nil {
+			return err
+		}
+		return state.delete("/recordings/" + strconv.FormatInt(id, 10))
+	})
+
+	sc.Then(`^השיחה "([^"]+)" לא מופיעה ביומן ההקלטות$`, func(title string) error {
+		if err := state.get("/recordings"); err != nil {
+			return err
+		}
+		if strings.Contains(state.lastBody, title) {
+			return fmt.Errorf("השיחה %q עדיין מופיעה ביומן ההקלטות", title)
 		}
 		return nil
 	})

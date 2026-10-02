@@ -1,0 +1,160 @@
+package phonecall
+
+import (
+	"strconv"
+
+	"insurance/models"
+	"insurance/templates/layout"
+)
+
+templ List(calls []models.PhoneCall, clients []models.Client, autoOpenNew bool) {
+	@layout.PageHeader("יומן הקלטות", "שיחות טלפון מוקלטות עם לקוחות")
+	<div class="mb-3">
+		<button class="btn btn-primary" hx-get="/recordings/new" hx-target="#modal-area">
+			<i class="bi bi-plus-lg"></i> שיחה מוקלטת חדשה
+		</button>
+	</div>
+	<div class="card-panel p-0">
+		<table class="table table-hover mb-0 align-middle">
+			<thead>
+				<tr>
+					<th>כותרת</th>
+					<th>לקוח</th>
+					<th>תאריך שיחה</th>
+					<th>הקלטה</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody id="recordings-tbody">
+				for _, pc := range calls {
+					@Row(pc)
+				}
+			</tbody>
+		</table>
+	</div>
+	<div id="modal-area">
+		if autoOpenNew {
+			@Form(nil, clients, 0)
+		}
+	</div>
+}
+
+templ Row(pc models.PhoneCall) {
+	<tr id={ "recording-row-" + strconv.FormatInt(pc.ID, 10) }>
+		<td>{ pc.Title }</td>
+		<td>{ pc.ClientName }</td>
+		<td>{ pc.RecordedAt }</td>
+		<td>
+			<audio controls preload="none" style="height:32px;max-width:260px;">
+				<source src={ pc.RecordingURL }/>
+			</audio>
+		</td>
+		<td class="text-start">
+			<button class="btn btn-sm btn-outline-secondary" hx-get={ "/recordings/" + strconv.FormatInt(pc.ID, 10) + "/edit" } hx-target="#modal-area">
+				<i class="bi bi-pencil"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-danger" hx-delete={ "/recordings/" + strconv.FormatInt(pc.ID, 10) } hx-target={ "#recording-row-" + strconv.FormatInt(pc.ID, 10) } hx-swap="outerHTML" hx-confirm="למחוק את השיחה המוקלטת?">
+				<i class="bi bi-trash"></i>
+			</button>
+		</td>
+	</tr>
+}
+
+templ Form(pc *models.PhoneCall, clients []models.Client, presetClientID int64) {
+	<div class="modal d-block" style="background:rgba(0,0,0,0.5);" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					if pc == nil {
+						<h5 class="modal-title">שיחה מוקלטת חדשה</h5>
+					} else {
+						<h5 class="modal-title">עריכת שיחה מוקלטת</h5>
+					}
+					<button type="button" class="btn-close" hx-get="/recordings/close" hx-target="#modal-area"></button>
+				</div>
+				if pc == nil {
+					<form hx-post="/recordings" hx-swap="none">
+						@formFields(pc, clients, presetClientID)
+					</form>
+				} else {
+					<form hx-put={ "/recordings/" + strconv.FormatInt(pc.ID, 10) } hx-swap="none">
+						@formFields(pc, clients, presetClientID)
+					</form>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+templ formFields(pc *models.PhoneCall, clients []models.Client, presetClientID int64) {
+	<div class="modal-body">
+		<div class="mb-3">
+			<label class="form-label">לקוח</label>
+			<select name="client_id" class="form-select" required>
+				<option value="">בחר לקוח</option>
+				for _, c := range clients {
+					if selectedClient(pc, presetClientID, c.ID) {
+						<option value={ strconv.FormatInt(c.ID, 10) } selected>{ c.FullName }</option>
+					} else {
+						<option value={ strconv.FormatInt(c.ID, 10) }>{ c.FullName }</option>
+					}
+				}
+			</select>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">כותרת השיחה</label>
+			<input type="text" name="title" class="form-control" required value={ valOf(pc, func(pc *models.PhoneCall) string { return pc.Title }) } placeholder="בירור סטטוס פוליסה..."/>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">תאריך ושעת השיחה</label>
+			<input type="datetime-local" name="recorded_at" class="form-control" required value={ valOf(pc, func(pc *models.PhoneCall) string { return pc.RecordedAt }) }/>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">כתובת ההקלטה (URL)</label>
+			<input type="url" name="recording_url" class="form-control" required value={ valOf(pc, func(pc *models.PhoneCall) string { return pc.RecordingURL }) } placeholder="https://..."/>
+		</div>
+	</div>
+	<div class="modal-footer">
+		<button type="button" class="btn btn-secondary" hx-get="/recordings/close" hx-target="#modal-area">ביטול</button>
+		<button type="submit" class="btn btn-primary">שמירה</button>
+	</div>
+}
+
+func selectedClient(pc *models.PhoneCall, presetClientID, candidateID int64) bool {
+	if pc != nil {
+		return pc.ClientID == candidateID
+	}
+	return presetClientID == candidateID
+}
+
+func valOf(pc *models.PhoneCall, f func(*models.PhoneCall) string) string {
+	if pc == nil {
+		return ""
+	}
+	return f(pc)
+}
+
+templ Empty() {
+}
+
+templ ClientCallList(clientID int64, calls []models.PhoneCall) {
+	<div>
+		if len(calls) == 0 {
+			<p class="text-muted mb-0">אין שיחות מוקלטות עבור לקוח זה</p>
+		} else {
+			<ul class="list-unstyled mb-0">
+				for _, pc := range calls {
+					<li class="mb-3">
+						<div class="d-flex justify-content-between align-items-center mb-1">
+							<strong style="font-size:13.5px;">{ pc.Title }</strong>
+							<span class="text-muted" style="font-size:11.5px;">{ pc.RecordedAt }</span>
+						</div>
+						<audio controls preload="none" style="height:32px;width:100%;">
+							<source src={ pc.RecordingURL }/>
+						</audio>
+					</li>
+				}
+			</ul>
+		}
+	</div>
+}

@@ -134,5 +134,9 @@ func ShowClient(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return Render(c, "clients", clientview.Detail(*cl, policies, claims, payments, attachments))
+	calls, err := models.ListPhoneCallsByClient(id)
+	if err != nil {
+		return err
+	}
+	return Render(c, "clients", clientview.Detail(*cl, policies, claims, payments, attachments, calls))
 }

@@ -5,6 +5,7 @@ import (
 
 	"insurance/models"
 	"insurance/templates/layout"
+	"insurance/templates/phonecall"
 )
 
 templ List(clients []models.Client, autoOpenNew bool) {
@@ -127,7 +128,7 @@ func valOf(c *models.Client, f func(*models.Client) string) string {
 	return f(c)
 }
 
-templ Detail(c models.Client, policies []models.Policy, claims []models.Claim, payments []models.Payment, attachments []models.Attachment) {
+templ Detail(c models.Client, policies []models.Policy, claims []models.Claim, payments []models.Payment, attachments []models.Attachment, calls []models.PhoneCall) {
 	@layout.PageHeader(c.FullName, "פרטי לקוח ותיק ביטוח")
 	<div class="row g-3">
 		<div class="col-md-4">
@@ -138,9 +139,13 @@ templ Detail(c models.Client, policies []models.Policy, claims []models.Claim, p
 				<p class="mb-1"><strong>טלפון:</strong> { c.Phone }</p>
 				<p class="mb-0"><strong>כתובת:</strong> { c.Address }</p>
 			</div>
-			<div class="card-panel">
+			<div class="card-panel mb-3">
 				<h6 class="mb-3">קבצים מצורפים</h6>
 				@AttachmentList("client", c.ID, attachments)
+			</div>
+			<div class="card-panel">
+				<h6 class="mb-3">שיחות מוקלטות</h6>
+				@phonecall.ClientCallList(c.ID, calls)
 			</div>
 		</div>
 		<div class="col-md-8">

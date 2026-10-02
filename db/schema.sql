@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS policies (
     end_date TEXT NOT NULL,
     premium REAL NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'פעילה',
+    approved_at TEXT,
+    approved_by_user_id INTEGER,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

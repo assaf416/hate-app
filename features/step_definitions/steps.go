@@ -372,6 +372,56 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 		return state.delete("/policies/" + strconv.FormatInt(id, 10))
 	})
 
+	sc.Then(`^הפוליסה "([^"]+)" מופיעה ברשימת הפוליסות כטרם מאושרת$`, func(number string) error {
+		if err := state.get("/policies"); err != nil {
+			return err
+		}
+		if !strings.Contains(state.lastBody, number) {
+			return fmt.Errorf("הפוליסה %q לא נמצאה ברשימה", number)
+		}
+		if !strings.Contains(state.lastBody, "טרם אושרה") {
+			return fmt.Errorf("הפוליסה %q לא מסומנת כטרם מאושרת", number)
+		}
+		return nil
+	})
+
+	sc.When(`^אני מאשר את הפוליסה "([^"]+)" על ידי משתמש מספר "([^"]+)"$`, func(number, userID string) error {
+		id, err := policyIDByNumber(number)
+		if err != nil {
+			return err
+		}
+		return state.postForm("/policies/"+strconv.FormatInt(id, 10)+"/approve", url.Values{
+			"approved_by_user_id": {userID},
+		})
+	})
+
+	sc.Then(`^הפוליסה "([^"]+)" מופיעה ברשימת הפוליסות כמאושרת$`, func(number string) error {
+		if err := state.get("/policies"); err != nil {
+			return err
+		}
+		if !strings.Contains(state.lastBody, number) {
+			return fmt.Errorf("הפוליסה %q לא נמצאה ברשימה", number)
+		}
+		if !strings.Contains(state.lastBody, "מאושרת") {
+			return fmt.Errorf("הפוליסה %q לא מסומנת כמאושרת", number)
+		}
+		return nil
+	})
+
+	sc.Then(`^כרטיס הפוליסה "([^"]+)" מציג שהיא אושרה על ידי משתמש מספר "([^"]+)"$`, func(number, userID string) error {
+		id, err := policyIDByNumber(number)
+		if err != nil {
+			return err
+		}
+		if err := state.get("/policies/" + strconv.FormatInt(id, 10)); err != nil {
+			return err
+		}
+		if !strings.Contains(state.lastBody, userID) {
+			return fmt.Errorf("מזהה המשתמש המאשר %q לא מופיע בכרטיס הפוליסה", userID)
+		}
+		return nil
+	})
+
 	// --- Claims ---
 
 	sc.When(`^אני יוצר תביעה מספר "([^"]+)" על הפוליסה "([^"]+)" בתאריך "([^"]+)" בסכום "([^"]+)" ותיאור "([^"]+)"$`,

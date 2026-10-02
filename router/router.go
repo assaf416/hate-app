@@ -34,6 +34,7 @@ func New() *echo.Echo {
 	e.POST("/policies", handlers.CreatePolicy)
 	e.PUT("/policies/:id", handlers.UpdatePolicy)
 	e.DELETE("/policies/:id", handlers.DeletePolicy)
+	e.POST("/policies/:id/approve", handlers.ApprovePolicy)
 
 	e.GET("/claims", handlers.ListClaims)
 	e.GET("/claims/new", handlers.NewClaimForm)

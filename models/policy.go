@@ -49,6 +49,29 @@ func ListPolicies() ([]Policy, error) {
 	return out, rows.Err()
 }
 
+// ListPoliciesPage returns one page of policies plus the total row count.
+func ListPoliciesPage(page, pageSize int) ([]Policy, int, error) {
+	rows, err := db.DB.Query(`
+		SELECT p.id, p.client_id, p.policy_number, p.policy_type, p.start_date, p.end_date, p.premium, p.status, p.approved_at, p.approved_by_user_id, p.created_at, c.full_name, COUNT(*) OVER() AS total
+		FROM policies p JOIN clients c ON c.id = p.client_id
+		ORDER BY p.id DESC LIMIT ? OFFSET ?`, pageSize, (page-1)*pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var out []Policy
+	total := 0
+	for rows.Next() {
+		var p Policy
+		if err := rows.Scan(&p.ID, &p.ClientID, &p.PolicyNumber, &p.PolicyType, &p.StartDate, &p.EndDate, &p.Premium, &p.Status, &p.ApprovedAt, &p.ApprovedByUserID, &p.CreatedAt, &p.ClientName, &total); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, p)
+	}
+	return out, total, rows.Err()
+}
+
 func ListPoliciesByClient(clientID int64) ([]Policy, error) {
 	rows, err := db.DB.Query(`SELECT id, client_id, policy_number, policy_type, start_date, end_date, premium, status, approved_at, approved_by_user_id, created_at FROM policies WHERE client_id = ? ORDER BY id DESC`, clientID)
 	if err != nil {

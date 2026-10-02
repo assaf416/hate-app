@@ -44,6 +44,31 @@ func ListClaims() ([]Claim, error) {
 	return out, rows.Err()
 }
 
+// ListClaimsPage returns one page of claims plus the total row count.
+func ListClaimsPage(page, pageSize int) ([]Claim, int, error) {
+	rows, err := db.DB.Query(`
+		SELECT cl.id, cl.client_id, cl.policy_id, cl.claim_number, cl.description, cl.amount, cl.status, cl.filed_date, cl.created_at, c.full_name, p.policy_number, COUNT(*) OVER() AS total
+		FROM claims cl
+		JOIN clients c ON c.id = cl.client_id
+		JOIN policies p ON p.id = cl.policy_id
+		ORDER BY cl.id DESC LIMIT ? OFFSET ?`, pageSize, (page-1)*pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var out []Claim
+	total := 0
+	for rows.Next() {
+		var c Claim
+		if err := rows.Scan(&c.ID, &c.ClientID, &c.PolicyID, &c.ClaimNumber, &c.Description, &c.Amount, &c.Status, &c.FiledDate, &c.CreatedAt, &c.ClientName, &c.PolicyNumber, &total); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, c)
+	}
+	return out, total, rows.Err()
+}
+
 func ListClaimsByClient(clientID int64) ([]Claim, error) {
 	rows, err := db.DB.Query(`
 		SELECT cl.id, cl.client_id, cl.policy_id, cl.claim_number, cl.description, cl.amount, cl.status, cl.filed_date, cl.created_at, p.policy_number

@@ -11,7 +11,8 @@ import (
 )
 
 func ListPolicies(c echo.Context) error {
-	policies, err := models.ListPolicies()
+	page := ParsePage(c)
+	policies, total, err := models.ListPoliciesPage(page, PageSize)
 	if err != nil {
 		return err
 	}
@@ -19,7 +20,8 @@ func ListPolicies(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return Render(c, "policies", policyview.List(policies, clients, c.QueryParam("new") == "1"))
+	pageInfo := BuildPageInfo(page, total, "/policies")
+	return Render(c, "policies", policyview.List(policies, clients, c.QueryParam("new") == "1", pageInfo))
 }
 
 func NewPolicyForm(c echo.Context) error {

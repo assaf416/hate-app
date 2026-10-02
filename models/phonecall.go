@@ -38,6 +38,29 @@ func ListPhoneCalls() ([]PhoneCall, error) {
 	return out, rows.Err()
 }
 
+// ListPhoneCallsPage returns one page of phone calls plus the total row count.
+func ListPhoneCallsPage(page, pageSize int) ([]PhoneCall, int, error) {
+	rows, err := db.DB.Query(`
+		SELECT pc.id, pc.client_id, pc.title, pc.recording_url, pc.recorded_at, pc.created_at, c.full_name, COUNT(*) OVER() AS total
+		FROM phone_calls pc JOIN clients c ON c.id = pc.client_id
+		ORDER BY pc.recorded_at DESC, pc.id DESC LIMIT ? OFFSET ?`, pageSize, (page-1)*pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var out []PhoneCall
+	total := 0
+	for rows.Next() {
+		var p PhoneCall
+		if err := rows.Scan(&p.ID, &p.ClientID, &p.Title, &p.RecordingURL, &p.RecordedAt, &p.CreatedAt, &p.ClientName, &total); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, p)
+	}
+	return out, total, rows.Err()
+}
+
 func ListPhoneCallsByClient(clientID int64) ([]PhoneCall, error) {
 	rows, err := db.DB.Query(`SELECT id, client_id, title, recording_url, recorded_at, created_at FROM phone_calls WHERE client_id = ? ORDER BY recorded_at DESC, id DESC`, clientID)
 	if err != nil {

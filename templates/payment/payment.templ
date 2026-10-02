@@ -7,7 +7,7 @@ import (
 	"insurance/templates/layout"
 )
 
-templ List(payments []models.Payment, policies []models.Policy, autoOpenNew bool) {
+templ List(payments []models.Payment, policies []models.Policy, autoOpenNew bool, pageInfo layout.PageInfo) {
 	@layout.PageHeader("תשלומים", "ניהול תשלומי פוליסות")
 	<div class="mb-3">
 		<button class="btn btn-primary" hx-get="/payments/new" hx-target="#modal-area">
@@ -34,6 +34,7 @@ templ List(payments []models.Payment, policies []models.Policy, autoOpenNew bool
 			</tbody>
 		</table>
 	</div>
+	@layout.Pagination(pageInfo)
 	<div id="modal-area">
 		if autoOpenNew {
 			@Form(nil, policies)

@@ -1,5 +1,16 @@
 package layout
 
+import "strconv"
+
+// PageInfo carries everything a list page needs to render pagination controls.
+type PageInfo struct {
+	Page       int
+	PageSize   int
+	Total      int
+	TotalPages int
+	BasePath   string
+}
+
 templ Base(active string) {
 	<!DOCTYPE html>
 	<html lang="he" dir="rtl">
@@ -137,4 +148,38 @@ templ PageHeader(title string, subtitle string) {
 			}
 		</div>
 	</div>
+}
+
+templ Pagination(info PageInfo) {
+	if info.TotalPages > 1 {
+		<div class="pagination-bar">
+			<span class="pagination-summary">
+				{ strconv.Itoa(info.Total) } תוצאות · עמוד { strconv.Itoa(info.Page) } מתוך { strconv.Itoa(info.TotalPages) }
+			</span>
+			<div class="btn-group">
+				@pageLink(info, 1, "bi-chevron-double-right", info.Page <= 1)
+				@pageLink(info, info.Page-1, "bi-chevron-right", info.Page <= 1)
+				@pageLink(info, info.Page+1, "bi-chevron-left", info.Page >= info.TotalPages)
+				@pageLink(info, info.TotalPages, "bi-chevron-double-left", info.Page >= info.TotalPages)
+			</div>
+		</div>
+	}
+}
+
+templ pageLink(info PageInfo, target int, icon string, disabled bool) {
+	if disabled {
+		<button type="button" class="btn btn-sm btn-outline-secondary" disabled>
+			<i class={ "bi", icon }></i>
+		</button>
+	} else {
+		<a
+			class="btn btn-sm btn-outline-secondary"
+			href={ templ.URL(info.BasePath + "?page=" + strconv.Itoa(target)) }
+			hx-get={ info.BasePath + "?page=" + strconv.Itoa(target) }
+			hx-target="#main-content"
+			hx-push-url="true"
+		>
+			<i class={ "bi", icon }></i>
+		</a>
+	}
 }

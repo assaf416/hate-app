@@ -11,7 +11,8 @@ import (
 )
 
 func ListPhoneCalls(c echo.Context) error {
-	calls, err := models.ListPhoneCalls()
+	page := ParsePage(c)
+	calls, total, err := models.ListPhoneCallsPage(page, PageSize)
 	if err != nil {
 		return err
 	}
@@ -19,7 +20,8 @@ func ListPhoneCalls(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return Render(c, "recordings", phonecallview.List(calls, clients, c.QueryParam("new") == "1"))
+	pageInfo := BuildPageInfo(page, total, "/recordings")
+	return Render(c, "recordings", phonecallview.List(calls, clients, c.QueryParam("new") == "1", pageInfo))
 }
 
 func NewPhoneCallForm(c echo.Context) error {

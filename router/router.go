@@ -52,6 +52,14 @@ func New() *echo.Echo {
 	e.PUT("/payments/:id", handlers.UpdatePayment)
 	e.DELETE("/payments/:id", handlers.DeletePayment)
 
+	e.GET("/recordings", handlers.ListPhoneCalls)
+	e.GET("/recordings/new", handlers.NewPhoneCallForm)
+	e.GET("/recordings/close", handlers.ClosePhoneCallModal)
+	e.GET("/recordings/:id/edit", handlers.EditPhoneCallForm)
+	e.POST("/recordings", handlers.CreatePhoneCall)
+	e.PUT("/recordings/:id", handlers.UpdatePhoneCall)
+	e.DELETE("/recordings/:id", handlers.DeletePhoneCall)
+
 	e.POST("/attachments/upload", handlers.UploadAttachment)
 	e.DELETE("/attachments/:id", handlers.DeleteAttachmentHandler)
 	e.GET("/attachments/:id/download", handlers.DownloadAttachment)

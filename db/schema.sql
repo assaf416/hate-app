@@ -58,6 +58,16 @@ CREATE TABLE IF NOT EXISTS attachments (
     uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS phone_calls (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    recording_url TEXT NOT NULL,
+    recorded_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_phone_calls_client ON phone_calls(client_id);
 CREATE INDEX IF NOT EXISTS idx_policies_client ON policies(client_id);
 CREATE INDEX IF NOT EXISTS idx_claims_client ON claims(client_id);
 CREATE INDEX IF NOT EXISTS idx_claims_policy ON claims(policy_id);

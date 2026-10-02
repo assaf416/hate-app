@@ -18,6 +18,7 @@ const (
 	numClients     = 100
 	numPolicies    = 1000
 	numAttachments = 300
+	numPhoneCalls  = 150
 )
 
 var (
@@ -62,6 +63,21 @@ var (
 		{".png", "image/png", []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'}},
 		{".jpg", "image/jpeg", []byte{0xFF, 0xD8, 0xFF}},
 	}
+
+	phoneCallTitles = []string{
+		"בירור סטטוס פוליסה", "הגשת תביעה חדשה", "עדכון פרטי תשלום", "בקשה לחידוש פוליסה",
+		"בירור לגבי כיסוי ביטוחי", "תלונה על עיכוב בטיפול", "בקשה להצעת מחיר", "עדכון פרטי קשר",
+		"בירור סטטוס תביעה", "ייעוץ לגבי הרחבת ביטוח",
+	}
+
+	// Public sample audio tracks used purely as demo "recordings" (no real call content).
+	recordingURLs = []string{
+		"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+		"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+		"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+		"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+		"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
+	}
 )
 
 func main() {
@@ -90,12 +106,16 @@ func main() {
 	seedAttachments(rng, clientIDs, policyIDs)
 	log.Printf("seeded %d attachments", numAttachments)
 
+	seedPhoneCalls(rng, clientIDs)
+	log.Printf("seeded %d phone call recordings", numPhoneCalls)
+
 	log.Println("done")
 }
 
 func reset() error {
 	_, err := db.DB.Exec(`
 		DELETE FROM attachments;
+		DELETE FROM phone_calls;
 		DELETE FROM payments;
 		DELETE FROM claims;
 		DELETE FROM policies;
@@ -236,6 +256,22 @@ func seedAttachments(rng *rand.Rand, clientIDs, policyIDs []int64) {
 		}
 		if _, err := models.CreateAttachment(a); err != nil {
 			log.Fatalf("create attachment %d: %v", i, err)
+		}
+	}
+}
+
+func seedPhoneCalls(rng *rand.Rand, clientIDs []int64) {
+	base := time.Date(2025, 1, 1, 8, 0, 0, 0, time.UTC)
+	for i := 1; i <= numPhoneCalls; i++ {
+		recordedAt := base.AddDate(0, rng.Intn(10), rng.Intn(28)).Add(time.Duration(rng.Intn(10)) * time.Hour)
+		pc := &models.PhoneCall{
+			ClientID:     pick(rng, clientIDs),
+			Title:        pick(rng, phoneCallTitles),
+			RecordingURL: pick(rng, recordingURLs),
+			RecordedAt:   recordedAt.Format("2006-01-02T15:04"),
+		}
+		if _, err := models.CreatePhoneCall(pc); err != nil {
+			log.Fatalf("create phone call %d: %v", i, err)
 		}
 	}
 }

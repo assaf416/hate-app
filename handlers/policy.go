@@ -102,6 +102,25 @@ func UpdatePolicy(c echo.Context) error {
 	return RedirectToReferer(c, "/policies")
 }
 
+func ApprovePolicy(c echo.Context) error {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+	}
+	approvedByUserID, err := strconv.ParseInt(c.FormValue("approved_by_user_id"), 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid approved_by_user_id")
+	}
+	if err := models.ApprovePolicy(id, approvedByUserID); err != nil {
+		return err
+	}
+	p, err := models.GetPolicy(id)
+	if err != nil {
+		return err
+	}
+	return policyview.ApprovalPanel(*p).Render(c.Request().Context(), c.Response())
+}
+
 func DeletePolicy(c echo.Context) error {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {

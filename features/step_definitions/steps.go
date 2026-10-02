@@ -232,6 +232,51 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 		return state.get(path)
 	})
 
+	sc.When(`^אני פותח את עמוד "([^"]+)" מספר "(\d+)"$`, func(name, pageNum string) error {
+		path, err := pageURL(name)
+		if err != nil {
+			return err
+		}
+		return state.get(path + "?page=" + pageNum)
+	})
+
+	sc.Then(`^מוצגות (\d+) שורות פוליסה בעמוד$`, func(count string) error {
+		want, err := strconv.Atoi(count)
+		if err != nil {
+			return err
+		}
+		got := strings.Count(state.lastBody, "policy-row-")
+		if got != want {
+			return fmt.Errorf("ציפיתי ל-%d שורות פוליסה בעמוד, נמצאו %d", want, got)
+		}
+		return nil
+	})
+
+	sc.When(`^אני יוצר (\d+) פוליסות ללקוח "([^"]+)"$`, func(count, clientName string) error {
+		n, err := strconv.Atoi(count)
+		if err != nil {
+			return err
+		}
+		clientID, err := clientIDByName(clientName)
+		if err != nil {
+			return err
+		}
+		for i := 1; i <= n; i++ {
+			if err := state.postForm("/policies", url.Values{
+				"client_id":     {strconv.FormatInt(clientID, 10)},
+				"policy_number": {fmt.Sprintf("PAG-%04d", i)},
+				"policy_type":   {"רכב"},
+				"start_date":    {"2026-01-01"},
+				"end_date":      {"2027-01-01"},
+				"premium":       {"100"},
+				"status":        {"פעילה"},
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
 	// --- Clients ---
 
 	sc.When(`^אני יוצר לקוח עם שם "([^"]+)" תעודת זהות "([^"]+)" אימייל "([^"]+)" טלפון "([^"]+)" וכתובת "([^"]+)"$`,

@@ -34,6 +34,29 @@ func ListClients() ([]Client, error) {
 	return out, rows.Err()
 }
 
+// ListClientsPage returns one page of clients plus the total row count,
+// for server-side pagination.
+func ListClientsPage(page, pageSize int) ([]Client, int, error) {
+	rows, err := db.DB.Query(`
+		SELECT id, full_name, national_id, email, phone, address, created_at, COUNT(*) OVER() AS total
+		FROM clients ORDER BY id DESC LIMIT ? OFFSET ?`, pageSize, (page-1)*pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var out []Client
+	total := 0
+	for rows.Next() {
+		var c Client
+		if err := rows.Scan(&c.ID, &c.FullName, &c.NationalID, &c.Email, &c.Phone, &c.Address, &c.CreatedAt, &total); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, c)
+	}
+	return out, total, rows.Err()
+}
+
 func GetClient(id int64) (*Client, error) {
 	var c Client
 	err := db.DB.QueryRow(`SELECT id, full_name, national_id, email, phone, address, created_at FROM clients WHERE id = ?`, id).

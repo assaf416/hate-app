@@ -11,7 +11,8 @@ import (
 )
 
 func ListClaims(c echo.Context) error {
-	claims, err := models.ListClaims()
+	page := ParsePage(c)
+	claims, total, err := models.ListClaimsPage(page, PageSize)
 	if err != nil {
 		return err
 	}
@@ -19,7 +20,8 @@ func ListClaims(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return Render(c, "claims", claimview.List(claims, policies, c.QueryParam("new") == "1"))
+	pageInfo := BuildPageInfo(page, total, "/claims")
+	return Render(c, "claims", claimview.List(claims, policies, c.QueryParam("new") == "1", pageInfo))
 }
 
 func NewClaimForm(c echo.Context) error {

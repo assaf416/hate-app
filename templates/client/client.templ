@@ -8,7 +8,7 @@ import (
 	"insurance/templates/phonecall"
 )
 
-templ List(clients []models.Client, autoOpenNew bool) {
+templ List(clients []models.Client, autoOpenNew bool, pageInfo layout.PageInfo) {
 	@layout.PageHeader("לקוחות", "ניהול לקוחות הביטוח")
 	<div class="mb-3">
 		<button class="btn btn-primary" hx-get="/clients/new" hx-target="#modal-area">
@@ -34,6 +34,7 @@ templ List(clients []models.Client, autoOpenNew bool) {
 			</tbody>
 		</table>
 	</div>
+	@layout.Pagination(pageInfo)
 	<div id="modal-area">
 		if autoOpenNew {
 			@Form(nil)

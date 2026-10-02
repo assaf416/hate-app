@@ -32,11 +32,13 @@ func Dashboard(c echo.Context) error {
 }
 
 func ListClients(c echo.Context) error {
-	clients, err := models.ListClients()
+	page := ParsePage(c)
+	clients, total, err := models.ListClientsPage(page, PageSize)
 	if err != nil {
 		return err
 	}
-	return Render(c, "clients", clientview.List(clients, c.QueryParam("new") == "1"))
+	pageInfo := BuildPageInfo(page, total, "/clients")
+	return Render(c, "clients", clientview.List(clients, c.QueryParam("new") == "1", pageInfo))
 }
 
 func NewClientForm(c echo.Context) error {

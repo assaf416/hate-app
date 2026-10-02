@@ -11,7 +11,8 @@ import (
 )
 
 func ListPayments(c echo.Context) error {
-	payments, err := models.ListPayments()
+	page := ParsePage(c)
+	payments, total, err := models.ListPaymentsPage(page, PageSize)
 	if err != nil {
 		return err
 	}
@@ -19,7 +20,8 @@ func ListPayments(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return Render(c, "payments", paymentview.List(payments, policies, c.QueryParam("new") == "1"))
+	pageInfo := BuildPageInfo(page, total, "/payments")
+	return Render(c, "payments", paymentview.List(payments, policies, c.QueryParam("new") == "1", pageInfo))
 }
 
 func NewPaymentForm(c echo.Context) error {

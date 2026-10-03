@@ -1,14 +1,81 @@
 package layout
 
-import "strconv"
+import (
+	"net/url"
+	"strconv"
+)
 
-// PageInfo carries everything a list page needs to render pagination controls.
+// PageInfo carries everything a list page needs to render pagination,
+// sorting, and filtering controls, and to build URLs that preserve all of
+// that state across navigation.
 type PageInfo struct {
 	Page       int
 	PageSize   int
 	Total      int
 	TotalPages int
 	BasePath   string
+
+	Sort   string
+	Dir    string // "asc" | "desc"
+	Q      string
+	Status string
+}
+
+func (p PageInfo) values() url.Values {
+	v := url.Values{}
+	if p.Sort != "" {
+		v.Set("sort", p.Sort)
+	}
+	if p.Dir != "" {
+		v.Set("dir", p.Dir)
+	}
+	if p.Q != "" {
+		v.Set("q", p.Q)
+	}
+	if p.Status != "" {
+		v.Set("status", p.Status)
+	}
+	return v
+}
+
+// PageURL builds a link to the given page number, preserving the current
+// sort and filter state.
+func (p PageInfo) PageURL(page int) string {
+	v := p.values()
+	v.Set("page", strconv.Itoa(page))
+	return p.BasePath + "?" + v.Encode()
+}
+
+// IsSort reports whether the list is currently sorted by the given column.
+func (p PageInfo) IsSort(column string) bool {
+	return p.Sort == column
+}
+
+// SortURL builds a link that sorts by the given column: toggling direction
+// if already sorted by it, otherwise sorting ascending. Preserves the
+// current filter state and resets to page 1.
+func (p PageInfo) SortURL(column string) string {
+	v := p.values()
+	dir := "asc"
+	if p.IsSort(column) && p.Dir != "desc" {
+		dir = "desc"
+	}
+	v.Set("sort", column)
+	v.Set("dir", dir)
+	v.Set("page", "1")
+	return p.BasePath + "?" + v.Encode()
+}
+
+// SortIcon returns the Bootstrap Icons class for the sort indicator shown
+// next to a column header.
+func (p PageInfo) SortIcon(column string) string {
+	if !p.IsSort(column) {
+		return "bi-arrow-down-up sort-icon-inactive"
+	}
+	if p.Dir == "desc" {
+		return "bi-sort-down-alt"
+	}
+	return "bi-sort-up"
 }
 
 templ Base(active string) {
@@ -174,12 +241,77 @@ templ pageLink(info PageInfo, target int, icon string, disabled bool) {
 	} else {
 		<a
 			class="btn btn-sm btn-outline-secondary"
-			href={ templ.URL(info.BasePath + "?page=" + strconv.Itoa(target)) }
-			hx-get={ info.BasePath + "?page=" + strconv.Itoa(target) }
+			href={ templ.URL(info.PageURL(target)) }
+			hx-get={ info.PageURL(target) }
 			hx-target="#main-content"
 			hx-push-url="true"
 		>
 			<i class={ "bi", icon }></i>
 		</a>
 	}
+}
+
+// SortableHeader renders a <th> whose label is a link that sorts the list
+// by the given column, toggling direction on repeat clicks.
+templ SortableHeader(info PageInfo, column, label string) {
+	<th>
+		<a
+			class="sortable-header"
+			href={ templ.URL(info.SortURL(column)) }
+			hx-get={ info.SortURL(column) }
+			hx-target="#main-content"
+			hx-push-url="true"
+		>
+			{ label }
+			<i class={ "bi", info.SortIcon(column) }></i>
+		</a>
+	</th>
+}
+
+// FilterBar renders a free-text search box and, optionally, a status
+// dropdown, meant to sit in the same row as a list page's "new" button.
+// Both inputs submit together and preserve the current sort/page state via
+// hidden fields; changing either resets the list to page 1.
+templ FilterBar(info PageInfo, statusOptions []string, statusLabel string) {
+	<form class="filter-bar" hx-get={ info.BasePath } hx-target="#main-content" hx-push-url="true">
+		if info.Sort != "" {
+			<input type="hidden" name="sort" value={ info.Sort }/>
+		}
+		if info.Dir != "" {
+			<input type="hidden" name="dir" value={ info.Dir }/>
+		}
+		<input
+			type="search"
+			name="q"
+			class="form-control form-control-sm"
+			placeholder="חיפוש חופשי..."
+			value={ info.Q }
+			autocomplete="off"
+			hx-get={ info.BasePath }
+			hx-trigger="keyup changed delay:400ms, search"
+			hx-target="#main-content"
+			hx-push-url="true"
+			hx-include="closest form"
+		/>
+		if len(statusOptions) > 0 {
+			<select
+				name="status"
+				class="form-select form-select-sm"
+				hx-get={ info.BasePath }
+				hx-trigger="change"
+				hx-target="#main-content"
+				hx-push-url="true"
+				hx-include="closest form"
+			>
+				<option value="">{ statusLabel }: הכל</option>
+				for _, s := range statusOptions {
+					if info.Status == s {
+						<option value={ s } selected>{ s }</option>
+					} else {
+						<option value={ s }>{ s }</option>
+					}
+				}
+			</select>
+		}
+	</form>
 }

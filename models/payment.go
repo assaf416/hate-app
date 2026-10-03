@@ -43,14 +43,38 @@ func ListPayments() ([]Payment, error) {
 	return out, rows.Err()
 }
 
-// ListPaymentsPage returns one page of payments plus the total row count.
-func ListPaymentsPage(page, pageSize int) ([]Payment, int, error) {
-	rows, err := db.DB.Query(`
+var paymentSortColumns = map[string]string{
+	"payment_date": "pm.payment_date",
+	"client":       "c.full_name",
+	"policy":       "p.policy_number",
+	"method":       "pm.method",
+	"amount":       "pm.amount",
+	"status":       "pm.status",
+}
+
+// ListPaymentsPage returns one page of payments plus the total row count,
+// optionally filtered by free-text search and/or status, and sorted by a
+// whitelisted column.
+func ListPaymentsPage(page, pageSize int, search, status, sortKey, dirKey string) ([]Payment, int, error) {
+	query := `
 		SELECT pm.id, pm.client_id, pm.policy_id, pm.amount, pm.payment_date, pm.method, pm.status, pm.created_at, c.full_name, p.policy_number, COUNT(*) OVER() AS total
 		FROM payments pm
 		JOIN clients c ON c.id = pm.client_id
-		JOIN policies p ON p.id = pm.policy_id
-		ORDER BY pm.id DESC LIMIT ? OFFSET ?`, pageSize, (page-1)*pageSize)
+		JOIN policies p ON p.id = pm.policy_id WHERE 1=1`
+	var args []any
+	if search != "" {
+		like := "%" + search + "%"
+		query += ` AND (c.full_name LIKE ? OR p.policy_number LIKE ? OR pm.method LIKE ?)`
+		args = append(args, like, like, like)
+	}
+	if status != "" {
+		query += ` AND pm.status = ?`
+		args = append(args, status)
+	}
+	query += ` ORDER BY ` + buildOrderBy(sortKey, dirKey, paymentSortColumns, "pm.id DESC") + ` LIMIT ? OFFSET ?`
+	args = append(args, pageSize, (page-1)*pageSize)
+
+	rows, err := db.DB.Query(query, args...)
 	if err != nil {
 		return nil, 0, err
 	}

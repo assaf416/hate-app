@@ -7,24 +7,27 @@ import (
 	"insurance/templates/layout"
 )
 
+var policyStatuses = []string{"פעילה", "מוקפאת", "מבוטלת", "הסתיימה"}
+
 templ List(policies []models.Policy, clients []models.Client, autoOpenNew bool, pageInfo layout.PageInfo) {
 	@layout.PageHeader("פוליסות", "ניהול פוליסות ביטוח")
-	<div class="mb-3">
+	<div class="list-toolbar">
 		<button class="btn btn-primary" hx-get="/policies/new" hx-target="#modal-area">
 			<i class="bi bi-plus-lg"></i> פוליסה חדשה
 		</button>
+		@layout.FilterBar(pageInfo, policyStatuses, "סטטוס")
 	</div>
 	<div class="card-panel p-0">
 		<table class="table table-hover mb-0">
 			<thead>
 				<tr>
-					<th>מספר פוליסה</th>
-					<th>לקוח</th>
-					<th>סוג</th>
-					<th>תחילה</th>
-					<th>סיום</th>
-					<th>פרמיה</th>
-					<th>סטטוס</th>
+					@layout.SortableHeader(pageInfo, "policy_number", "מספר פוליסה")
+					@layout.SortableHeader(pageInfo, "client", "לקוח")
+					@layout.SortableHeader(pageInfo, "policy_type", "סוג")
+					@layout.SortableHeader(pageInfo, "start_date", "תחילה")
+					@layout.SortableHeader(pageInfo, "end_date", "סיום")
+					@layout.SortableHeader(pageInfo, "premium", "פרמיה")
+					@layout.SortableHeader(pageInfo, "status", "סטטוס")
 					<th>אישור</th>
 					<th></th>
 				</tr>
@@ -141,7 +144,7 @@ templ formFields(p *models.Policy, clients []models.Client, presetClientID int64
 		<div class="mb-3">
 			<label class="form-label">סטטוס</label>
 			<select name="status" class="form-select">
-				for _, s := range []string{"פעילה", "מוקפאת", "מבוטלת", "הסתיימה"} {
+				for _, s := range policyStatuses {
 					if valOf(p, func(p *models.Policy) string { return p.Status }) == s {
 						<option value={ s } selected>{ s }</option>
 					} else {

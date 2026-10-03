@@ -10,20 +10,21 @@ import (
 
 templ List(clients []models.Client, autoOpenNew bool, pageInfo layout.PageInfo) {
 	@layout.PageHeader("לקוחות", "ניהול לקוחות הביטוח")
-	<div class="mb-3">
+	<div class="list-toolbar">
 		<button class="btn btn-primary" hx-get="/clients/new" hx-target="#modal-area">
 			<i class="bi bi-plus-lg"></i> לקוח חדש
 		</button>
+		@layout.FilterBar(pageInfo, nil, "")
 	</div>
 	<div class="card-panel p-0">
 		<table class="table table-hover mb-0">
 			<thead>
 				<tr>
-					<th>שם מלא</th>
-					<th>תעודת זהות</th>
-					<th>אימייל</th>
-					<th>טלפון</th>
-					<th>כתובת</th>
+					@layout.SortableHeader(pageInfo, "name", "שם מלא")
+					@layout.SortableHeader(pageInfo, "national_id", "תעודת זהות")
+					@layout.SortableHeader(pageInfo, "email", "אימייל")
+					@layout.SortableHeader(pageInfo, "phone", "טלפון")
+					@layout.SortableHeader(pageInfo, "address", "כתובת")
 					<th></th>
 				</tr>
 			</thead>

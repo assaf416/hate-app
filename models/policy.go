@@ -49,12 +49,37 @@ func ListPolicies() ([]Policy, error) {
 	return out, rows.Err()
 }
 
-// ListPoliciesPage returns one page of policies plus the total row count.
-func ListPoliciesPage(page, pageSize int) ([]Policy, int, error) {
-	rows, err := db.DB.Query(`
+var policySortColumns = map[string]string{
+	"policy_number": "p.policy_number",
+	"client":        "c.full_name",
+	"policy_type":   "p.policy_type",
+	"start_date":    "p.start_date",
+	"end_date":      "p.end_date",
+	"premium":       "p.premium",
+	"status":        "p.status",
+}
+
+// ListPoliciesPage returns one page of policies plus the total row count,
+// optionally filtered by free-text search and/or status, and sorted by a
+// whitelisted column.
+func ListPoliciesPage(page, pageSize int, search, status, sortKey, dirKey string) ([]Policy, int, error) {
+	query := `
 		SELECT p.id, p.client_id, p.policy_number, p.policy_type, p.start_date, p.end_date, p.premium, p.status, p.approved_at, p.approved_by_user_id, p.created_at, c.full_name, COUNT(*) OVER() AS total
-		FROM policies p JOIN clients c ON c.id = p.client_id
-		ORDER BY p.id DESC LIMIT ? OFFSET ?`, pageSize, (page-1)*pageSize)
+		FROM policies p JOIN clients c ON c.id = p.client_id WHERE 1=1`
+	var args []any
+	if search != "" {
+		like := "%" + search + "%"
+		query += ` AND (p.policy_number LIKE ? OR c.full_name LIKE ? OR p.policy_type LIKE ?)`
+		args = append(args, like, like, like)
+	}
+	if status != "" {
+		query += ` AND p.status = ?`
+		args = append(args, status)
+	}
+	query += ` ORDER BY ` + buildOrderBy(sortKey, dirKey, policySortColumns, "p.id DESC") + ` LIMIT ? OFFSET ?`
+	args = append(args, pageSize, (page-1)*pageSize)
+
+	rows, err := db.DB.Query(query, args...)
 	if err != nil {
 		return nil, 0, err
 	}

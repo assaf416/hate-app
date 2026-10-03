@@ -34,12 +34,29 @@ func ListClients() ([]Client, error) {
 	return out, rows.Err()
 }
 
-// ListClientsPage returns one page of clients plus the total row count,
-// for server-side pagination.
-func ListClientsPage(page, pageSize int) ([]Client, int, error) {
-	rows, err := db.DB.Query(`
-		SELECT id, full_name, national_id, email, phone, address, created_at, COUNT(*) OVER() AS total
-		FROM clients ORDER BY id DESC LIMIT ? OFFSET ?`, pageSize, (page-1)*pageSize)
+var clientSortColumns = map[string]string{
+	"name":        "full_name",
+	"national_id": "national_id",
+	"email":       "email",
+	"phone":       "phone",
+	"address":     "address",
+}
+
+// ListClientsPage returns one page of clients plus the total row count, for
+// server-side pagination, optionally filtered by free-text search and
+// sorted by a whitelisted column.
+func ListClientsPage(page, pageSize int, search, sortKey, dirKey string) ([]Client, int, error) {
+	query := `SELECT id, full_name, national_id, email, phone, address, created_at, COUNT(*) OVER() AS total FROM clients WHERE 1=1`
+	var args []any
+	if search != "" {
+		like := "%" + search + "%"
+		query += ` AND (full_name LIKE ? OR national_id LIKE ? OR email LIKE ? OR phone LIKE ? OR address LIKE ?)`
+		args = append(args, like, like, like, like, like)
+	}
+	query += ` ORDER BY ` + buildOrderBy(sortKey, dirKey, clientSortColumns, "id DESC") + ` LIMIT ? OFFSET ?`
+	args = append(args, pageSize, (page-1)*pageSize)
+
+	rows, err := db.DB.Query(query, args...)
 	if err != nil {
 		return nil, 0, err
 	}

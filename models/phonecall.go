@@ -38,12 +38,29 @@ func ListPhoneCalls() ([]PhoneCall, error) {
 	return out, rows.Err()
 }
 
-// ListPhoneCallsPage returns one page of phone calls plus the total row count.
-func ListPhoneCallsPage(page, pageSize int) ([]PhoneCall, int, error) {
-	rows, err := db.DB.Query(`
+var phoneCallSortColumns = map[string]string{
+	"title":       "pc.title",
+	"client":      "c.full_name",
+	"recorded_at": "pc.recorded_at",
+}
+
+// ListPhoneCallsPage returns one page of phone calls plus the total row
+// count, optionally filtered by free-text search and sorted by a
+// whitelisted column.
+func ListPhoneCallsPage(page, pageSize int, search, sortKey, dirKey string) ([]PhoneCall, int, error) {
+	query := `
 		SELECT pc.id, pc.client_id, pc.title, pc.recording_url, pc.recorded_at, pc.created_at, c.full_name, COUNT(*) OVER() AS total
-		FROM phone_calls pc JOIN clients c ON c.id = pc.client_id
-		ORDER BY pc.recorded_at DESC, pc.id DESC LIMIT ? OFFSET ?`, pageSize, (page-1)*pageSize)
+		FROM phone_calls pc JOIN clients c ON c.id = pc.client_id WHERE 1=1`
+	var args []any
+	if search != "" {
+		like := "%" + search + "%"
+		query += ` AND (pc.title LIKE ? OR c.full_name LIKE ?)`
+		args = append(args, like, like)
+	}
+	query += ` ORDER BY ` + buildOrderBy(sortKey, dirKey, phoneCallSortColumns, "pc.recorded_at DESC, pc.id DESC") + ` LIMIT ? OFFSET ?`
+	args = append(args, pageSize, (page-1)*pageSize)
+
+	rows, err := db.DB.Query(query, args...)
 	if err != nil {
 		return nil, 0, err
 	}

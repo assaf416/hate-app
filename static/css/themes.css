@@ -26,13 +26,13 @@
     --brand-icon-bg: #ff6a00;
 }
 
-[data-company="hapoel"] {
-    --sidebar-bg: #0a2a4d;
-    --sidebar-bg-hover: #123a66;
-    --sidebar-active: #ffb300;
-    --sidebar-text: #c7d7ea;
+[data-company="harel"] {
+    --sidebar-bg: #2b2d2f;
+    --sidebar-bg-hover: #3c3f42;
+    --sidebar-active: #1a8fe3;
+    --sidebar-text: #d4d5d6;
     --sidebar-text-active: #ffffff;
-    --brand-icon-bg: #0057a0;
+    --brand-icon-bg: #2e9e4f;
 }
 
 [data-company="agri"] {

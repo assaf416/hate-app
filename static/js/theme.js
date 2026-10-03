@@ -1,9 +1,9 @@
 const COMPANIES = {
     default: { name: "חברת הביטוח", initial: "ב" },
-    phoenix: { name: "הפניקס", initial: "פ" },
-    hapoel: { name: "הפול חברת ביטוח", initial: "ה" },
-    agri: { name: "ביטוח חקלאי", initial: "ח" },
-    shmeret: { name: "שמרת ביטוח", initial: "ש" },
+    phoenix: { name: "הפניקס", initial: "פ", logo: "/static/images/company-logos/phoenix.png" },
+    harel: { name: "הראל חברה לביטוח", initial: "ה", logo: "/static/images/company-logos/harel.png" },
+    agri: { name: "ביטוח חקלאי", initial: "ח", logo: "/static/images/company-logos/bituach_haklai.png" },
+    shmeret: { name: "שמרת ביטוח", initial: "ש", logo: "/static/images/company-logos/shomera.png" },
 };
 
 function applyTheme() {
@@ -15,8 +15,22 @@ function applyTheme() {
 
     var meta = COMPANIES[company] || COMPANIES.default;
     var icon = document.getElementById("workspace-icon");
+    var logo = document.getElementById("workspace-logo");
     var name = document.getElementById("workspace-name");
-    if (icon) icon.textContent = meta.initial;
+
+    if (meta.logo) {
+        if (logo) {
+            logo.src = meta.logo;
+            logo.style.display = "block";
+        }
+        if (icon) icon.style.display = "none";
+    } else {
+        if (logo) logo.style.display = "none";
+        if (icon) {
+            icon.style.display = "flex";
+            icon.textContent = meta.initial;
+        }
+    }
     if (name) name.textContent = meta.name;
 
     var select = document.getElementById("company-switcher");

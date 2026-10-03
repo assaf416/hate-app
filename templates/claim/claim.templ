@@ -7,23 +7,26 @@ import (
 	"insurance/templates/layout"
 )
 
+var claimStatuses = []string{"פתוחה", "בבדיקה", "אושרה", "נדחתה", "נסגרה"}
+
 templ List(claims []models.Claim, policies []models.Policy, autoOpenNew bool, pageInfo layout.PageInfo) {
 	@layout.PageHeader("תביעות", "ניהול תביעות ביטוח")
-	<div class="mb-3">
+	<div class="list-toolbar">
 		<button class="btn btn-primary" hx-get="/claims/new" hx-target="#modal-area">
 			<i class="bi bi-plus-lg"></i> תביעה חדשה
 		</button>
+		@layout.FilterBar(pageInfo, claimStatuses, "סטטוס")
 	</div>
 	<div class="card-panel p-0">
 		<table class="table table-hover mb-0">
 			<thead>
 				<tr>
-					<th>מספר תביעה</th>
-					<th>לקוח</th>
-					<th>פוליסה</th>
-					<th>תאריך הגשה</th>
-					<th>סכום</th>
-					<th>סטטוס</th>
+					@layout.SortableHeader(pageInfo, "claim_number", "מספר תביעה")
+					@layout.SortableHeader(pageInfo, "client", "לקוח")
+					@layout.SortableHeader(pageInfo, "policy", "פוליסה")
+					@layout.SortableHeader(pageInfo, "filed_date", "תאריך הגשה")
+					@layout.SortableHeader(pageInfo, "amount", "סכום")
+					@layout.SortableHeader(pageInfo, "status", "סטטוס")
 					<th></th>
 				</tr>
 			</thead>
@@ -121,7 +124,7 @@ templ formFields(cl *models.Claim, policies []models.Policy) {
 		<div class="mb-3">
 			<label class="form-label">סטטוס</label>
 			<select name="status" class="form-select">
-				for _, s := range []string{"פתוחה", "בבדיקה", "אושרה", "נדחתה", "נסגרה"} {
+				for _, s := range claimStatuses {
 					if valOf(cl, func(cl *models.Claim) string { return cl.Status }) == s {
 						<option value={ s } selected>{ s }</option>
 					} else {

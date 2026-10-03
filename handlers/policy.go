@@ -12,7 +12,8 @@ import (
 
 func ListPolicies(c echo.Context) error {
 	page := ParsePage(c)
-	policies, total, err := models.ListPoliciesPage(page, PageSize)
+	lq := ParseListQuery(c)
+	policies, total, err := models.ListPoliciesPage(page, PageSize, lq.Search, lq.Status, lq.Sort, lq.Dir)
 	if err != nil {
 		return err
 	}
@@ -20,7 +21,7 @@ func ListPolicies(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	pageInfo := BuildPageInfo(page, total, "/policies")
+	pageInfo := BuildPageInfo(page, total, "/policies", lq)
 	return Render(c, "policies", policyview.List(policies, clients, c.QueryParam("new") == "1", pageInfo))
 }
 

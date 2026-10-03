@@ -426,6 +426,49 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 		return state.delete("/policies/" + strconv.FormatInt(id, 10))
 	})
 
+	// --- Sort & filter ---
+
+	sc.When(`^אני מחפש "([^"]+)" ברשימת הפוליסות$`, func(query string) error {
+		return state.get("/policies?q=" + url.QueryEscape(query))
+	})
+
+	sc.When(`^אני מסנן את רשימת הפוליסות לפי סטטוס "([^"]+)"$`, func(status string) error {
+		return state.get("/policies?status=" + url.QueryEscape(status))
+	})
+
+	sc.When(`^אני ממיין את רשימת הפוליסות לפי "([^"]+)" בסדר "([^"]+)"$`, func(column, dir string) error {
+		return state.get("/policies?sort=" + url.QueryEscape(column) + "&dir=" + url.QueryEscape(dir))
+	})
+
+	sc.Then(`^בתוצאות מופיעה הפוליסה "([^"]+)"$`, func(number string) error {
+		if !strings.Contains(state.lastBody, number) {
+			return fmt.Errorf("הפוליסה %q לא נמצאה בתוצאות", number)
+		}
+		return nil
+	})
+
+	sc.Then(`^בתוצאות לא מופיעה הפוליסה "([^"]+)"$`, func(number string) error {
+		if strings.Contains(state.lastBody, number) {
+			return fmt.Errorf("הפוליסה %q מופיעה בתוצאות בטעות", number)
+		}
+		return nil
+	})
+
+	sc.Then(`^הפוליסה "([^"]+)" מופיעה לפני הפוליסה "([^"]+)" ברשימת הפוליסות$`, func(first, second string) error {
+		firstIdx := strings.Index(state.lastBody, first)
+		secondIdx := strings.Index(state.lastBody, second)
+		if firstIdx == -1 {
+			return fmt.Errorf("הפוליסה %q לא נמצאה בעמוד", first)
+		}
+		if secondIdx == -1 {
+			return fmt.Errorf("הפוליסה %q לא נמצאה בעמוד", second)
+		}
+		if firstIdx >= secondIdx {
+			return fmt.Errorf("ציפיתי שהפוליסה %q תופיע לפני %q", first, second)
+		}
+		return nil
+	})
+
 	sc.Then(`^הפוליסה "([^"]+)" מופיעה ברשימת הפוליסות כטרם מאושרת$`, func(number string) error {
 		if err := state.get("/policies"); err != nil {
 			return err

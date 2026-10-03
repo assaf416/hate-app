@@ -44,14 +44,38 @@ func ListClaims() ([]Claim, error) {
 	return out, rows.Err()
 }
 
-// ListClaimsPage returns one page of claims plus the total row count.
-func ListClaimsPage(page, pageSize int) ([]Claim, int, error) {
-	rows, err := db.DB.Query(`
+var claimSortColumns = map[string]string{
+	"claim_number": "cl.claim_number",
+	"client":       "c.full_name",
+	"policy":       "p.policy_number",
+	"filed_date":   "cl.filed_date",
+	"amount":       "cl.amount",
+	"status":       "cl.status",
+}
+
+// ListClaimsPage returns one page of claims plus the total row count,
+// optionally filtered by free-text search and/or status, and sorted by a
+// whitelisted column.
+func ListClaimsPage(page, pageSize int, search, status, sortKey, dirKey string) ([]Claim, int, error) {
+	query := `
 		SELECT cl.id, cl.client_id, cl.policy_id, cl.claim_number, cl.description, cl.amount, cl.status, cl.filed_date, cl.created_at, c.full_name, p.policy_number, COUNT(*) OVER() AS total
 		FROM claims cl
 		JOIN clients c ON c.id = cl.client_id
-		JOIN policies p ON p.id = cl.policy_id
-		ORDER BY cl.id DESC LIMIT ? OFFSET ?`, pageSize, (page-1)*pageSize)
+		JOIN policies p ON p.id = cl.policy_id WHERE 1=1`
+	var args []any
+	if search != "" {
+		like := "%" + search + "%"
+		query += ` AND (cl.claim_number LIKE ? OR c.full_name LIKE ? OR p.policy_number LIKE ? OR cl.description LIKE ?)`
+		args = append(args, like, like, like, like)
+	}
+	if status != "" {
+		query += ` AND cl.status = ?`
+		args = append(args, status)
+	}
+	query += ` ORDER BY ` + buildOrderBy(sortKey, dirKey, claimSortColumns, "cl.id DESC") + ` LIMIT ? OFFSET ?`
+	args = append(args, pageSize, (page-1)*pageSize)
+
+	rows, err := db.DB.Query(query, args...)
 	if err != nil {
 		return nil, 0, err
 	}

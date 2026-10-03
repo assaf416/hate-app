@@ -7,23 +7,26 @@ import (
 	"insurance/templates/layout"
 )
 
+var paymentStatuses = []string{"שולם", "ממתין", "נכשל", "הוחזר"}
+
 templ List(payments []models.Payment, policies []models.Policy, autoOpenNew bool, pageInfo layout.PageInfo) {
 	@layout.PageHeader("תשלומים", "ניהול תשלומי פוליסות")
-	<div class="mb-3">
+	<div class="list-toolbar">
 		<button class="btn btn-primary" hx-get="/payments/new" hx-target="#modal-area">
 			<i class="bi bi-plus-lg"></i> תשלום חדש
 		</button>
+		@layout.FilterBar(pageInfo, paymentStatuses, "סטטוס")
 	</div>
 	<div class="card-panel p-0">
 		<table class="table table-hover mb-0">
 			<thead>
 				<tr>
-					<th>תאריך</th>
-					<th>לקוח</th>
-					<th>פוליסה</th>
-					<th>אמצעי תשלום</th>
-					<th>סכום</th>
-					<th>סטטוס</th>
+					@layout.SortableHeader(pageInfo, "payment_date", "תאריך")
+					@layout.SortableHeader(pageInfo, "client", "לקוח")
+					@layout.SortableHeader(pageInfo, "policy", "פוליסה")
+					@layout.SortableHeader(pageInfo, "method", "אמצעי תשלום")
+					@layout.SortableHeader(pageInfo, "amount", "סכום")
+					@layout.SortableHeader(pageInfo, "status", "סטטוס")
 					<th></th>
 				</tr>
 			</thead>
@@ -125,7 +128,7 @@ templ formFields(pm *models.Payment, policies []models.Policy) {
 		<div class="mb-3">
 			<label class="form-label">סטטוס</label>
 			<select name="status" class="form-select">
-				for _, s := range []string{"שולם", "ממתין", "נכשל", "הוחזר"} {
+				for _, s := range paymentStatuses {
 					if valOf(pm, func(pm *models.Payment) string { return pm.Status }) == s {
 						<option value={ s } selected>{ s }</option>
 					} else {

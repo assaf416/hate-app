@@ -9,18 +9,19 @@ import (
 
 templ List(calls []models.PhoneCall, clients []models.Client, autoOpenNew bool, pageInfo layout.PageInfo) {
 	@layout.PageHeader("יומן הקלטות", "שיחות טלפון מוקלטות עם לקוחות")
-	<div class="mb-3">
+	<div class="list-toolbar">
 		<button class="btn btn-primary" hx-get="/recordings/new" hx-target="#modal-area">
 			<i class="bi bi-plus-lg"></i> שיחה מוקלטת חדשה
 		</button>
+		@layout.FilterBar(pageInfo, nil, "")
 	</div>
 	<div class="card-panel p-0">
 		<table class="table table-hover mb-0 align-middle">
 			<thead>
 				<tr>
-					<th>כותרת</th>
-					<th>לקוח</th>
-					<th>תאריך שיחה</th>
+					@layout.SortableHeader(pageInfo, "title", "כותרת")
+					@layout.SortableHeader(pageInfo, "client", "לקוח")
+					@layout.SortableHeader(pageInfo, "recorded_at", "תאריך שיחה")
 					<th>הקלטה</th>
 					<th></th>
 				</tr>

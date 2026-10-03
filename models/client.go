@@ -74,6 +74,35 @@ func ListClientsPage(page, pageSize int, search, sortKey, dirKey string) ([]Clie
 	return out, total, rows.Err()
 }
 
+// ListClientsAll returns every client matching the given filter/sort, with
+// no pagination limit -- used for exports.
+func ListClientsAll(search, sortKey, dirKey string) ([]Client, error) {
+	query := `SELECT id, full_name, national_id, email, phone, address, created_at FROM clients WHERE 1=1`
+	var args []any
+	if search != "" {
+		like := "%" + search + "%"
+		query += ` AND (full_name LIKE ? OR national_id LIKE ? OR email LIKE ? OR phone LIKE ? OR address LIKE ?)`
+		args = append(args, like, like, like, like, like)
+	}
+	query += ` ORDER BY ` + buildOrderBy(sortKey, dirKey, clientSortColumns, "id DESC")
+
+	rows, err := db.DB.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []Client
+	for rows.Next() {
+		var c Client
+		if err := rows.Scan(&c.ID, &c.FullName, &c.NationalID, &c.Email, &c.Phone, &c.Address, &c.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
 func GetClient(id int64) (*Client, error) {
 	var c Client
 	err := db.DB.QueryRow(`SELECT id, full_name, national_id, email, phone, address, created_at FROM clients WHERE id = ?`, id).

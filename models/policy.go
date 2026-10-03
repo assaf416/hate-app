@@ -97,6 +97,41 @@ func ListPoliciesPage(page, pageSize int, search, status, sortKey, dirKey string
 	return out, total, rows.Err()
 }
 
+// ListPoliciesAll returns every policy matching the given filter/sort, with
+// no pagination limit -- used for exports.
+func ListPoliciesAll(search, status, sortKey, dirKey string) ([]Policy, error) {
+	query := `
+		SELECT p.id, p.client_id, p.policy_number, p.policy_type, p.start_date, p.end_date, p.premium, p.status, p.approved_at, p.approved_by_user_id, p.created_at, c.full_name
+		FROM policies p JOIN clients c ON c.id = p.client_id WHERE 1=1`
+	var args []any
+	if search != "" {
+		like := "%" + search + "%"
+		query += ` AND (p.policy_number LIKE ? OR c.full_name LIKE ? OR p.policy_type LIKE ?)`
+		args = append(args, like, like, like)
+	}
+	if status != "" {
+		query += ` AND p.status = ?`
+		args = append(args, status)
+	}
+	query += ` ORDER BY ` + buildOrderBy(sortKey, dirKey, policySortColumns, "p.id DESC")
+
+	rows, err := db.DB.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []Policy
+	for rows.Next() {
+		var p Policy
+		if err := rows.Scan(&p.ID, &p.ClientID, &p.PolicyNumber, &p.PolicyType, &p.StartDate, &p.EndDate, &p.Premium, &p.Status, &p.ApprovedAt, &p.ApprovedByUserID, &p.CreatedAt, &p.ClientName); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
 func ListPoliciesByClient(clientID int64) ([]Policy, error) {
 	rows, err := db.DB.Query(`SELECT id, client_id, policy_number, policy_type, start_date, end_date, premium, status, approved_at, approved_by_user_id, created_at FROM policies WHERE client_id = ? ORDER BY id DESC`, clientID)
 	if err != nil {

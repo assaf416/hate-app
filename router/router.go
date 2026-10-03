@@ -18,6 +18,7 @@ func New() *echo.Echo {
 	e.GET("/chat", handlers.Chat)
 
 	e.GET("/clients", handlers.ListClients)
+	e.GET("/clients/export", handlers.ExportClients)
 	e.GET("/clients/new", handlers.NewClientForm)
 	e.GET("/clients/close", handlers.CloseModal)
 	e.GET("/clients/:id", handlers.ShowClient)
@@ -27,6 +28,7 @@ func New() *echo.Echo {
 	e.DELETE("/clients/:id", handlers.DeleteClient)
 
 	e.GET("/policies", handlers.ListPolicies)
+	e.GET("/policies/export", handlers.ExportPolicies)
 	e.GET("/policies/new", handlers.NewPolicyForm)
 	e.GET("/policies/close", handlers.ClosePolicyModal)
 	e.GET("/policies/:id", handlers.ShowPolicy)
@@ -37,6 +39,7 @@ func New() *echo.Echo {
 	e.POST("/policies/:id/approve", handlers.ApprovePolicy)
 
 	e.GET("/claims", handlers.ListClaims)
+	e.GET("/claims/export", handlers.ExportClaims)
 	e.GET("/claims/new", handlers.NewClaimForm)
 	e.GET("/claims/close", handlers.CloseClaimModal)
 	e.GET("/claims/:id/edit", handlers.EditClaimForm)
@@ -45,6 +48,7 @@ func New() *echo.Echo {
 	e.DELETE("/claims/:id", handlers.DeleteClaim)
 
 	e.GET("/payments", handlers.ListPayments)
+	e.GET("/payments/export", handlers.ExportPayments)
 	e.GET("/payments/new", handlers.NewPaymentForm)
 	e.GET("/payments/close", handlers.ClosePaymentModal)
 	e.GET("/payments/:id/edit", handlers.EditPaymentForm)
@@ -53,6 +57,7 @@ func New() *echo.Echo {
 	e.DELETE("/payments/:id", handlers.DeletePayment)
 
 	e.GET("/recordings", handlers.ListPhoneCalls)
+	e.GET("/recordings/export", handlers.ExportPhoneCalls)
 	e.GET("/recordings/new", handlers.NewPhoneCallForm)
 	e.GET("/recordings/close", handlers.ClosePhoneCallModal)
 	e.GET("/recordings/:id/edit", handlers.EditPhoneCallForm)

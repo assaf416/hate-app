@@ -289,6 +289,12 @@ body {
     margin-bottom: 16px;
 }
 
+.list-toolbar-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .filter-bar {
     display: flex;
     gap: 8px;

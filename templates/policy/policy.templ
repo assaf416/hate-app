@@ -12,9 +12,12 @@ var policyStatuses = []string{"פעילה", "מוקפאת", "מבוטלת", "ה�
 templ List(policies []models.Policy, clients []models.Client, autoOpenNew bool, pageInfo layout.PageInfo) {
 	@layout.PageHeader("פוליסות", "ניהול פוליסות ביטוח")
 	<div class="list-toolbar">
-		<button class="btn btn-primary" hx-get="/policies/new" hx-target="#modal-area">
-			<i class="bi bi-plus-lg"></i> פוליסה חדשה
-		</button>
+		<div class="list-toolbar-actions">
+			<button class="btn btn-primary" hx-get="/policies/new" hx-target="#modal-area">
+				<i class="bi bi-plus-lg"></i> פוליסה חדשה
+			</button>
+			@layout.ExportButton(pageInfo)
+		</div>
 		@layout.FilterBar(pageInfo, policyStatuses, "סטטוס")
 	</div>
 	<div class="card-panel p-0">

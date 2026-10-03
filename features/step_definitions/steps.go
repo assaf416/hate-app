@@ -24,11 +24,12 @@ import (
 )
 
 type testState struct {
-	server        *httptest.Server
-	dbPath        string
-	lastStatus    int
-	lastBody      string
-	lastPaymentID int64
+	server          *httptest.Server
+	dbPath          string
+	lastStatus      int
+	lastBody        string
+	lastContentType string
+	lastPaymentID   int64
 }
 
 func (s *testState) reset() error {
@@ -131,6 +132,7 @@ func (s *testState) capture(resp *http.Response) error {
 	}
 	s.lastStatus = resp.StatusCode
 	s.lastBody = string(body)
+	s.lastContentType = resp.Header.Get("Content-Type")
 	return nil
 }
 
@@ -144,6 +146,8 @@ func pageURL(name string) (string, error) {
 		return "/claims", nil
 	case "תשלומים":
 		return "/payments", nil
+	case "יומן הקלטות":
+		return "/recordings", nil
 	case "לוח הבקרה":
 		return "/", nil
 	default:
@@ -424,6 +428,38 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 			return err
 		}
 		return state.delete("/policies/" + strconv.FormatInt(id, 10))
+	})
+
+	// --- Excel export ---
+
+	sc.When(`^אני מוריד את רשימת "([^"]+)" כקובץ אקסל$`, func(name string) error {
+		path, err := pageURL(name)
+		if err != nil {
+			return err
+		}
+		return state.get(path + "/export")
+	})
+
+	sc.When(`^אני מוריד את רשימת "([^"]+)" כקובץ אקסל עם סינון סטטוס "([^"]+)"$`, func(name, status string) error {
+		path, err := pageURL(name)
+		if err != nil {
+			return err
+		}
+		return state.get(path + "/export?status=" + url.QueryEscape(status))
+	})
+
+	sc.Then(`^הקובץ שהתקבל הוא קובץ אקסל תקין$`, func() error {
+		if state.lastStatus != 200 {
+			return fmt.Errorf("סטטוס לא תקין: %d", state.lastStatus)
+		}
+		const xlsxContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+		if state.lastContentType != xlsxContentType {
+			return fmt.Errorf("סוג תוכן שגוי: %q, ציפיתי ל-%q", state.lastContentType, xlsxContentType)
+		}
+		if len(state.lastBody) == 0 {
+			return fmt.Errorf("הקובץ שהתקבל ריק")
+		}
+		return nil
 	})
 
 	// --- Sort & filter ---

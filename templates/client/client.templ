@@ -11,9 +11,12 @@ import (
 templ List(clients []models.Client, autoOpenNew bool, pageInfo layout.PageInfo) {
 	@layout.PageHeader("לקוחות", "ניהול לקוחות הביטוח")
 	<div class="list-toolbar">
-		<button class="btn btn-primary" hx-get="/clients/new" hx-target="#modal-area">
-			<i class="bi bi-plus-lg"></i> לקוח חדש
-		</button>
+		<div class="list-toolbar-actions">
+			<button class="btn btn-primary" hx-get="/clients/new" hx-target="#modal-area">
+				<i class="bi bi-plus-lg"></i> לקוח חדש
+			</button>
+			@layout.ExportButton(pageInfo)
+		</div>
 		@layout.FilterBar(pageInfo, nil, "")
 	</div>
 	<div class="card-panel p-0">

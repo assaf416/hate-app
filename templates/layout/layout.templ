@@ -46,6 +46,12 @@ func (p PageInfo) PageURL(page int) string {
 	return p.BasePath + "?" + v.Encode()
 }
 
+// ExportURL builds a link to download the current filtered/sorted list
+// (every matching row, not just the current page) as an Excel file.
+func (p PageInfo) ExportURL() string {
+	return p.BasePath + "/export?" + p.values().Encode()
+}
+
 // IsSort reports whether the list is currently sorted by the given column.
 func (p PageInfo) IsSort(column string) bool {
 	return p.Sort == column
@@ -272,6 +278,14 @@ templ SortableHeader(info PageInfo, column, label string) {
 // dropdown, meant to sit in the same row as a list page's "new" button.
 // Both inputs submit together and preserve the current sort/page state via
 // hidden fields; changing either resets the list to page 1.
+// ExportButton renders a plain (non-HTMX) link that downloads the current
+// filtered/sorted list as an Excel file.
+templ ExportButton(info PageInfo) {
+	<a class="btn btn-outline-success" href={ templ.URL(info.ExportURL()) }>
+		<i class="bi bi-file-earmark-excel-fill"></i> ייצוא לאקסל
+	</a>
+}
+
 templ FilterBar(info PageInfo, statusOptions []string, statusLabel string) {
 	<form class="filter-bar" hx-get={ info.BasePath } hx-target="#main-content" hx-push-url="true">
 		if info.Sort != "" {

@@ -12,9 +12,12 @@ var claimStatuses = []string{"פתוחה", "בבדיקה", "אושרה", "נדח
 templ List(claims []models.Claim, policies []models.Policy, autoOpenNew bool, pageInfo layout.PageInfo) {
 	@layout.PageHeader("תביעות", "ניהול תביעות ביטוח")
 	<div class="list-toolbar">
-		<button class="btn btn-primary" hx-get="/claims/new" hx-target="#modal-area">
-			<i class="bi bi-plus-lg"></i> תביעה חדשה
-		</button>
+		<div class="list-toolbar-actions">
+			<button class="btn btn-primary" hx-get="/claims/new" hx-target="#modal-area">
+				<i class="bi bi-plus-lg"></i> תביעה חדשה
+			</button>
+			@layout.ExportButton(pageInfo)
+		</div>
 		@layout.FilterBar(pageInfo, claimStatuses, "סטטוס")
 	</div>
 	<div class="card-panel p-0">

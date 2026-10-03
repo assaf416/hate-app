@@ -12,9 +12,12 @@ var paymentStatuses = []string{"שולם", "ממתין", "נכשל", "הוחזר
 templ List(payments []models.Payment, policies []models.Policy, autoOpenNew bool, pageInfo layout.PageInfo) {
 	@layout.PageHeader("תשלומים", "ניהול תשלומי פוליסות")
 	<div class="list-toolbar">
-		<button class="btn btn-primary" hx-get="/payments/new" hx-target="#modal-area">
-			<i class="bi bi-plus-lg"></i> תשלום חדש
-		</button>
+		<div class="list-toolbar-actions">
+			<button class="btn btn-primary" hx-get="/payments/new" hx-target="#modal-area">
+				<i class="bi bi-plus-lg"></i> תשלום חדש
+			</button>
+			@layout.ExportButton(pageInfo)
+		</div>
 		@layout.FilterBar(pageInfo, paymentStatuses, "סטטוס")
 	</div>
 	<div class="card-panel p-0">

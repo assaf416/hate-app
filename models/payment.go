@@ -92,6 +92,43 @@ func ListPaymentsPage(page, pageSize int, search, status, sortKey, dirKey string
 	return out, total, rows.Err()
 }
 
+// ListPaymentsAll returns every payment matching the given filter/sort, with
+// no pagination limit -- used for exports.
+func ListPaymentsAll(search, status, sortKey, dirKey string) ([]Payment, error) {
+	query := `
+		SELECT pm.id, pm.client_id, pm.policy_id, pm.amount, pm.payment_date, pm.method, pm.status, pm.created_at, c.full_name, p.policy_number
+		FROM payments pm
+		JOIN clients c ON c.id = pm.client_id
+		JOIN policies p ON p.id = pm.policy_id WHERE 1=1`
+	var args []any
+	if search != "" {
+		like := "%" + search + "%"
+		query += ` AND (c.full_name LIKE ? OR p.policy_number LIKE ? OR pm.method LIKE ?)`
+		args = append(args, like, like, like)
+	}
+	if status != "" {
+		query += ` AND pm.status = ?`
+		args = append(args, status)
+	}
+	query += ` ORDER BY ` + buildOrderBy(sortKey, dirKey, paymentSortColumns, "pm.id DESC")
+
+	rows, err := db.DB.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []Payment
+	for rows.Next() {
+		var p Payment
+		if err := rows.Scan(&p.ID, &p.ClientID, &p.PolicyID, &p.Amount, &p.PaymentDate, &p.Method, &p.Status, &p.CreatedAt, &p.ClientName, &p.PolicyNumber); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
 func ListPaymentsByClient(clientID int64) ([]Payment, error) {
 	rows, err := db.DB.Query(`
 		SELECT pm.id, pm.client_id, pm.policy_id, pm.amount, pm.payment_date, pm.method, pm.status, pm.created_at, p.policy_number

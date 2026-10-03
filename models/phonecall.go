@@ -78,6 +78,37 @@ func ListPhoneCallsPage(page, pageSize int, search, sortKey, dirKey string) ([]P
 	return out, total, rows.Err()
 }
 
+// ListPhoneCallsAll returns every phone call matching the given
+// filter/sort, with no pagination limit -- used for exports.
+func ListPhoneCallsAll(search, sortKey, dirKey string) ([]PhoneCall, error) {
+	query := `
+		SELECT pc.id, pc.client_id, pc.title, pc.recording_url, pc.recorded_at, pc.created_at, c.full_name
+		FROM phone_calls pc JOIN clients c ON c.id = pc.client_id WHERE 1=1`
+	var args []any
+	if search != "" {
+		like := "%" + search + "%"
+		query += ` AND (pc.title LIKE ? OR c.full_name LIKE ?)`
+		args = append(args, like, like)
+	}
+	query += ` ORDER BY ` + buildOrderBy(sortKey, dirKey, phoneCallSortColumns, "pc.recorded_at DESC, pc.id DESC")
+
+	rows, err := db.DB.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []PhoneCall
+	for rows.Next() {
+		var p PhoneCall
+		if err := rows.Scan(&p.ID, &p.ClientID, &p.Title, &p.RecordingURL, &p.RecordedAt, &p.CreatedAt, &p.ClientName); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
 func ListPhoneCallsByClient(clientID int64) ([]PhoneCall, error) {
 	rows, err := db.DB.Query(`SELECT id, client_id, title, recording_url, recorded_at, created_at FROM phone_calls WHERE client_id = ? ORDER BY recorded_at DESC, id DESC`, clientID)
 	if err != nil {

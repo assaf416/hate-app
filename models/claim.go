@@ -93,6 +93,43 @@ func ListClaimsPage(page, pageSize int, search, status, sortKey, dirKey string) 
 	return out, total, rows.Err()
 }
 
+// ListClaimsAll returns every claim matching the given filter/sort, with no
+// pagination limit -- used for exports.
+func ListClaimsAll(search, status, sortKey, dirKey string) ([]Claim, error) {
+	query := `
+		SELECT cl.id, cl.client_id, cl.policy_id, cl.claim_number, cl.description, cl.amount, cl.status, cl.filed_date, cl.created_at, c.full_name, p.policy_number
+		FROM claims cl
+		JOIN clients c ON c.id = cl.client_id
+		JOIN policies p ON p.id = cl.policy_id WHERE 1=1`
+	var args []any
+	if search != "" {
+		like := "%" + search + "%"
+		query += ` AND (cl.claim_number LIKE ? OR c.full_name LIKE ? OR p.policy_number LIKE ? OR cl.description LIKE ?)`
+		args = append(args, like, like, like, like)
+	}
+	if status != "" {
+		query += ` AND cl.status = ?`
+		args = append(args, status)
+	}
+	query += ` ORDER BY ` + buildOrderBy(sortKey, dirKey, claimSortColumns, "cl.id DESC")
+
+	rows, err := db.DB.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []Claim
+	for rows.Next() {
+		var c Claim
+		if err := rows.Scan(&c.ID, &c.ClientID, &c.PolicyID, &c.ClaimNumber, &c.Description, &c.Amount, &c.Status, &c.FiledDate, &c.CreatedAt, &c.ClientName, &c.PolicyNumber); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
 func ListClaimsByClient(clientID int64) ([]Claim, error) {
 	rows, err := db.DB.Query(`
 		SELECT cl.id, cl.client_id, cl.policy_id, cl.claim_number, cl.description, cl.amount, cl.status, cl.filed_date, cl.created_at, p.policy_number
